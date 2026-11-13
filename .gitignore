@@ -28,3 +28,7 @@ db.sqlite3-journal
 .idea/
 Thumbs.db
 desktop.ini
+
+# Memoria privada del proyecto: nunca se publica en Git
+MEMORY.md
+**/MEMORY.md
