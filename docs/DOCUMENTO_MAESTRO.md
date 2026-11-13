@@ -135,7 +135,8 @@ Vista 360° por placa e indicadores (cumplimiento, bloqueos, fallas repetidas).
 Los 4 canales, reintentos, preferencias y puesta en producción.
 
 ### v1.1 — Mantenimiento e incidentes
-Inspección profunda semanal, mantenimiento por km y tiempo, incidentes, novedad → orden de trabajo.
+Inspección profunda semanal, mantenimiento **registrado a mano** (tipo, fecha, km del vehículo y
+km del próximo cambio, con aviso por distancia), incidentes, novedad → orden de trabajo.
 
 ### v1.2 — PESV y modo sin conexión
 Capacitaciones, programas de riesgo, exámenes médicos, exportes PDF/Excel, PWA offline, foto georreferenciada.
@@ -164,6 +165,8 @@ Multi-sede, API para terceros, integración con GPS/telemetría, app nativa si s
 | R13 | Toda acción queda auditada. |
 | R14 | Nada se borra: retención mínima de 5 años. |
 | R15 | Las notificaciones críticas no se pueden silenciar. |
+| R16 | El mantenimiento se registra **a mano**: tipo, fecha, km del vehículo en ese momento y km del próximo cambio. El sistema calcula y muestra la distancia restante y avisa antes del vencimiento; **no** deduce intervalos por marca ni por referencia. |
+| R17 | Validaciones del mantenimiento: el km del próximo cambio debe ser mayor que el km registrado, la fecha no puede ser futura y el km registrado no puede ser menor que el último kilometraje conocido del vehículo. |
 
 ---
 
@@ -243,6 +246,7 @@ permisos validados en el servidor, bloqueo por intentos fallidos (v1.1), HTTPS e
 | Alcance | 10 módulos de golpe | **Versiones v0.1 → v2.0** | Entregas verificables |
 | Flota | "7 vehículos" fijo | **Escalable sin tocar código** | Crecimiento de la empresa |
 | Inicio de servicio | No existía | **Nuevo, con ruta/operación** | Sin inicio no hay control de turno |
+| Cálculo de mantenimiento | Automático por marca y referencia | **Manual**: el usuario digita fecha, km del vehículo y km del próximo cambio | No hay planes de mantenimiento por marca cargados; se evita depender de datos que la empresa no tiene |
 
 ---
 

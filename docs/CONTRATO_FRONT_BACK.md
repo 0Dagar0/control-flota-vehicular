@@ -107,7 +107,7 @@ La capa A es la principal. La capa B existe para que la app funcione sin interne
 | `GET` | `/vehiculos/<placa>/` | Hoja de vida resumida |
 | `GET` | `/hoja-vida/<placa>/` | Vista 360°: documentos, inspecciones, novedades, mantenimientos, incidentes |
 | `GET/POST` | `/documentos/` | Registrar o renovar documentos |
-| `GET/POST` | `/mantenimientos/` | Registrar mantenimiento (v1.1) |
+| `GET/POST` | `/mantenimientos/` | Registrar mantenimiento manual: tipo, fecha, km, próximo km (v1.1) |
 | `GET/POST` | `/incidentes/` | Registrar accidente o incidente (v1.1) |
 | `GET` | `/reportes/` | Cumplimiento, fallas repetidas, bloqueos |
 
@@ -132,6 +132,37 @@ La capa A es la principal. La capa B existe para que la app funcione sin interne
 | `hash_justificacion` | Se calcula en el servidor (SHA-256), no lo envía el cliente |
 
 Si falta cualquiera de los tres primeros, se rechaza con **400**.
+
+### 5.4 Mantenimiento (v1.1)
+
+Registran el mantenimiento el **administrador** y el **superadministrador**. El cálculo es
+**manual**: el sistema no deduce intervalos por marca ni por referencia (regla R16 del documento
+maestro).
+
+**Flujo en pantalla:**
+
+1. Se elige el vehículo. El sistema muestra su `km_actual` como referencia.
+2. El usuario confirma o corrige el **km que tenía el vehículo cuando se hizo** el mantenimiento.
+3. Se piden la **fecha en que se realizó** y el **km en que se cumple el próximo cambio**.
+4. Datos opcionales: próxima fecha, costo y observaciones.
+5. Al guardar, la pantalla muestra **"faltan N km"** y avisa cuando la distancia restante baja del
+   umbral configurado (por defecto **500 km**).
+
+**Campos del formulario:**
+
+| Campo | Obligatorio | Validación |
+|---|---|---|
+| `vehiculo` | Sí | Debe existir y no estar dado de baja |
+| `tipo` | Sí | Catálogo: aceite, filtros, frenos, llantas, otro |
+| `fecha` | Sí | No puede ser futura |
+| `km` | Sí | Mayor o igual al último kilometraje registrado del vehículo (R12) |
+| `proximo_km` | Sí | Mayor que `km` |
+| `proxima_fecha` | No | Si viene, debe ser posterior a `fecha` |
+| `costo` | No | Mayor o igual a 0 |
+| `observaciones` | No | Máximo 500 caracteres |
+
+Se rechaza con **400** cualquier combinación que incumpla las validaciones de `fecha`, `km` y
+`proximo_km`. Ningún mantenimiento se borra: se corrige con otro registro y queda auditado.
 
 ---
 
@@ -214,7 +245,7 @@ Error:
 | **Novedad** | vehículo, conductor, origen, descripción, severidad, estado, requiere_superadmin |
 | **Gestión** | novedad, usuario, descripción, fecha |
 | **Autorización** | novedad, superadmin, justificación, hash, ip, fecha |
-| **Mantenimiento** | vehículo, tipo, fecha, km, costo, próximo_km, próxima_fecha (v1.1) |
+| **Mantenimiento** | vehículo, tipo, fecha, km, costo, próximo_km, próxima_fecha (opcional), observaciones (v1.1) |
 | **Incidente** | vehículo, conductor, fecha, gravedad, descripción, causa, acción (v1.1) |
 | **Notificación** | usuario, evento, canal, estado, intentos, error, enviado_en |
 | **Auditoría** | usuario, acción, entidad, id, datos_antes, datos_despues, ip, fecha |
@@ -256,6 +287,7 @@ ABIERTA → EN_PROCESO → RESUELTA → VALIDADA
 | Documento a 7, 3 y 0 días | Admin + superadmin | App, correo (resumen diario 7:00 a. m.) |
 | Inspección no realizada al mediodía | Admin | App |
 | Servicio cerrado con novedad | Admin | App |
+| Mantenimiento cerca del próximo cambio (umbral 500 km) | Admin + superadmin | App, correo (resumen diario) |
 
 El escalamiento y los reintentos se definen en el documento maestro (sección 9).
 
