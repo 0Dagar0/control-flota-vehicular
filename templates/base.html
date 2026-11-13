@@ -1,0 +1,70 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block titulo %}Mi Flota{% endblock %}</title>
+    <style>
+        :root {
+            --verde: #1b8a3e;
+            --verde-oscuro: #116327;
+            --crema: #fef7e5;
+            --marron: #3e110d;
+            --amarillo: #f7d117;
+            --gris-fondo: #f4f6f8;
+            --rojo-alerta: #d93838;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--gris-fondo);
+            color: var(--marron);
+            font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+            min-height: 100vh;
+        }
+
+        header {
+            background-color: var(--marron);
+            color: var(--crema);
+            padding: 18px 24px;
+            border-bottom: 5px solid var(--verde);
+        }
+
+        header h1 { font-size: 1.2rem; color: var(--amarillo); }
+
+        main { padding: 24px; max-width: 900px; margin: 0 auto; }
+
+        .tarjeta {
+            background: #fff;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 12px rgba(62, 17, 13, 0.06);
+            border-left: 5px solid var(--verde);
+        }
+
+        .etiqueta {
+            display: inline-block;
+            background: var(--crema);
+            color: var(--marron);
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        .rojo { color: var(--rojo-alerta); }
+        .ok { color: var(--verde); }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Mi Flota</h1>
+    </header>
+    <main>
+        {% block contenido %}{% endblock %}
+    </main>
+</body>
+</html>
