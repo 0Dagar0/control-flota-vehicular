@@ -105,7 +105,7 @@ credenciales de notificación (correo y Telegram).
 Proyecto Django, usuario con roles, configuración por `.env`, pruebas, Git.
 
 ### v0.2 — Modelos de flota
-Vehículo, Conductor, Documento, Configuración. Carga del PMX109. Migración a PostgreSQL.
+Vehículo, Conductor, Documento, Configuración. Carga de la flota inicial. Migración a PostgreSQL.
 
 ### v0.3 — Acceso
 Login, logout, permisos por rol, plantilla base de la interfaz.
@@ -160,13 +160,17 @@ Multi-sede, API para terceros, integración con GPS/telemetría, app nativa si s
 | R8 | Solo el superadmin autoriza salida con falla, con justificación, contraseña y aceptación. |
 | R9 | El administrador solo puede cambiar de vehículo, escalar o dejar constancia. |
 | R10 | El temporizador de autorización es de **15 minutos** (configurable). |
-| R11 | Un documento vencido bloquea el vehículo. |
+| R11 | Un documento vencido bloquea el vehículo (solo documentos del vehículo; la licencia del conductor se rige por R21). |
 | R12 | El kilometraje nunca puede disminuir. |
 | R13 | Toda acción queda auditada. |
 | R14 | Nada se borra: retención mínima de 5 años. |
 | R15 | Las notificaciones críticas no se pueden silenciar. |
 | R16 | El mantenimiento se registra **a mano**: tipo, fecha, km del vehículo en ese momento y km del próximo cambio. El sistema calcula y muestra la distancia restante y avisa antes del vencimiento; **no** deduce intervalos por marca ni por referencia. |
 | R17 | Validaciones del mantenimiento: el km del próximo cambio debe ser mayor que el km registrado, la fecha no puede ser futura y el km registrado no puede ser menor que el último kilometraje conocido del vehículo. |
+| R18 | Toda asignación vehículo-conductor queda registrada y es consultable **al menos 2 años**. La hoja de vida muestra las más recientes paginadas (5 por página); lo no mostrado sigue guardado y nada se borra (R14). |
+| R19 | Todo documento debe tener **soporte digital** (foto o PDF) para considerarse **completo**. Puede registrarse sin él: queda como **«soporte pendiente»** hasta que se suba desde el PC, sin duplicar la imagen en otra tabla (actualizada 2026-11-15). |
+| R20 | **Dar de baja a un conductor** no borra nada: lo marca inactivo, registra fecha y motivo, cierra su asignación vigente y retira sus documentos de los vencimientos activos. Su historial sigue visible. |
+| R21 | Una **licencia vencida o ausente** no bloquea el vehículo, pero impide que ese conductor inicie servicio. |
 
 ---
 
@@ -247,6 +251,12 @@ permisos validados en el servidor, bloqueo por intentos fallidos (v1.1), HTTPS e
 | Flota | "7 vehículos" fijo | **Escalable sin tocar código** | Crecimiento de la empresa |
 | Inicio de servicio | No existía | **Nuevo, con ruta/operación** | Sin inicio no hay control de turno |
 | Cálculo de mantenimiento | Automático por marca y referencia | **Manual**: el usuario digita fecha, km del vehículo y km del próximo cambio | No hay planes de mantenimiento por marca cargados; se evita depender de datos que la empresa no tiene |
+| Campos del mantenimiento | `tipo` era el catálogo de servicios | **`tipo`** (preventivo/correctivo), **`servicio`** (qué se hizo) y **`parte`** (dónde) | Un cambio de aceite puede ser preventivo o correctivo; son tres datos distintos (decidido con las maquetas del 13/11) |
+| Factura del mantenimiento | No existía | **Opcional**, con soporte adjunto y estado `pendiente`/`adjunta` | Respaldo contable y trazabilidad del gasto |
+| Historial de conductores | Sin regla | Consultable **al menos 2 años**, paginado de 5 en 5 | Regla del dueño (13/11); lo que no se muestra sigue guardado (R14) |
+| Baja de conductor | No existía | Marca inactivo, cierra asignación y retira sus documentos activos, sin borrar historial | Un retiro no puede dejar documentos "vigentes" ni perder trazabilidad |
+| Licencia del conductor | "Documento vencido bloquea el vehículo" | Bloquea al **conductor**, no al vehículo | La licencia no es un documento del vehículo (R21) |
+| Soporte de documentos | No se exigía | **Obligatorio** (foto o PDF) para contar como válido | El PESV exige evidencia, no solo el dato |
 
 ---
 
@@ -267,8 +277,32 @@ permisos validados en el servidor, bloqueo por intentos fallidos (v1.1), HTTPS e
 1. Crear base de datos y usuario en PostgreSQL 18.
 2. Cambiar `DB_ENGINE=postgresql` en `.env` y migrar.
 3. Modelos `Vehiculo`, `Conductor`, `Documento`, `Configuracion`.
-4. Cargar datos reales del PMX109.
+4. Cargar los datos reales de la flota.
 5. Primer commit.
+
+### Estado al 2026-11-15
+
+- **v0.1** sigue completada y verificada; el repositorio es la carpeta `App\` de este proyecto.
+- **Maquetas del encargo 01 validadas** (4 pantallas, 9 archivos): cumplen los 9 criterios técnicos del
+  encargo. Viven solo en el respaldo local del disco de trabajo (`Avances\maquetas`) y **no** se han
+  integrado al repositorio: llevan incrustado el logo real de la empresa y el repositorio es público.
+- **Contrato alineado** con las decisiones de las maquetas: `tipo`/`servicio`/`parte`, factura del
+  mantenimiento, baja de conductor, soporte documental y reglas R18 a R21.
+- **Siguiente:** decidir si primero se completan las pantallas que pidió el dueño el 13/11
+  (reportar novedad, gestionar novedad, vehículos, conductores) o si se abre v0.2 con los modelos.
+
+### Estado al 2026-11-15 (cierre de la sesión de la tarde)
+
+- **v0.2 completada:** modelos de flota + admin + PostgreSQL, con 5 vehículos y 14 documentos reales
+  cargados (todos con «soporte pendiente», R19).
+- **v0.3 avanzada:** `static/css/mi-flota.css` con la paleta de las maquetas, `templates/base.html`
+  con sidebar vinotinto y logo neutro «MF», login por cédula en `/cuenta/login/`, y las pantallas
+  `flota/` (vehículos), `flota/vehiculos/<placa>/` (hoja de vida con semáforo documental y 6 espacios
+  de foto) y `flota/documentos/` con filtro «solo soporte pendiente».
+- **Permisos por rol activos:** anónimo → login; conductor → aviso de que su pantalla llega en v0.5;
+  admin y superadmin → flota. 46 pruebas pasan, `ruff` limpio, sin migraciones pendientes.
+- **Encargo 02 entregado al agente de diseño** con plan de 4 días (16 al 19/11/2026): galería de
+  fotos, documentos y visor, conductores y baja, y novedades/vehículos/factura.
 
 ---
 
@@ -276,8 +310,8 @@ permisos validados en el servidor, bloqueo por intentos fallidos (v1.1), HTTPS e
 
 | Riesgo / pendiente | Impacto | Mitigación |
 |---|---|---|
-| Solo hay datos reales del PMX109 | El sistema arranca casi vacío | El usuario está recopilando los 7 vehículos; se cargan cuando estén |
-| Licencia de ejemplo vencida | Bloqueo artificial en pruebas | Se reemplaza con datos reales |
+| Solo hay datos de 5 de los 7 vehículos | El sistema arranca incompleto | El usuario está recopilando los 2 restantes y los datos de los conductores |
+| Licencia de ejemplo vencida | El conductor de prueba no puede iniciar servicio | Se reemplaza con datos reales |
 | Web Push limitado en iPhone | Un canal menos en iOS | Requiere instalar la PWA (iOS 16.4+); correo y Telegram cubren |
 | Sin conexión en zona rural | Inspecciones perdidas | Modo offline en v1.2 |
 | Fotos de 2–4 MB | Consumo de datos | Compresión a ≤1 MB antes de subir |

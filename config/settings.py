@@ -30,6 +30,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "apps.usuarios",
+    "apps.flota",
 ]
 
 MIDDLEWARE = [
@@ -104,7 +105,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LOGIN_URL = "login"
-LOGIN_REDIRECT_URL = "inicio"
+LOGIN_REDIRECT_URL = "flota:lista"
 LOGOUT_REDIRECT_URL = "login"
 
 # ---------------------------------------------------------------------------

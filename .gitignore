@@ -32,3 +32,7 @@ desktop.ini
 # Memoria privada del proyecto: nunca se publica en Git
 MEMORY.md
 **/MEMORY.md
+
+# Datos reales del cliente: placas, VIN y propietarios no se publican.
+# Se versiona solo datos/flota_inicial.ejemplo.json (datos ficticios).
+/datos/flota_inicial.json

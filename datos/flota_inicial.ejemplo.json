@@ -1,0 +1,54 @@
+{
+  "fuente": "datos/flota_inicial.ejemplo.json (datos inventados para pruebas)",
+  "actualizado": "2026-11-15",
+  "nota": "Copia de demostración: placas, VIN y propietarios ficticios. Úsala como plantilla.",
+  "vehiculos": [
+    {
+      "placa": "ABC123",
+      "marca": "FOTON",
+      "referencia": "BJ1044",
+      "modelo": 2024,
+      "tipo_carroceria": "FURGÓN",
+      "vin": "AAAAAAAAAAAAAAAA1",
+      "motor": "MOTOR001",
+      "combustible": "diesel",
+      "km_actual": 15000,
+      "propietario": "EMPRESA DE EJEMPLO SAS"
+    },
+    {
+      "placa": "XYZ987",
+      "marca": "CHEVROLET",
+      "referencia": "NHR",
+      "modelo": 2019,
+      "tipo_carroceria": "FURGÓN",
+      "vin": "BBBBBBBBBBBBBBBB2",
+      "motor": "MOTOR002",
+      "combustible": "diesel",
+      "km_actual": 98000,
+      "propietario": "EMPRESA DE EJEMPLO SAS"
+    }
+  ],
+  "documentos": [
+    {
+      "placa": "ABC123",
+      "tipo": "soat",
+      "entidad": "Aseguradora de Ejemplo SA",
+      "numero": "000111222",
+      "vencimiento": "2027-06-30"
+    },
+    {
+      "placa": "ABC123",
+      "tipo": "tecnomecanica",
+      "entidad": "CDA de Ejemplo",
+      "numero": "333444555",
+      "vencimiento": "2027-07-30"
+    },
+    {
+      "placa": "XYZ987",
+      "tipo": "soat",
+      "entidad": "Aseguradora de Ejemplo SA",
+      "numero": "666777888",
+      "vencimiento": "2027-02-15"
+    }
+  ]
+}

@@ -90,6 +90,7 @@ La capa A es la principal. La capa B existe para que la app funcione sin interne
 **Validaciones obligatorias (servidor):**
 
 - No se inicia servicio si: el vehículo está bloqueado, ya tiene un servicio abierto, o no tiene inspección rápida del día aprobada.
+- No se inicia servicio si el conductor está dado de baja o no tiene la licencia vigente para la categoría del vehículo (R20, R21).
 - `kilometraje_inicial` ≥ último kilometraje registrado.
 - `descripcion_ruta` obligatoria, entre 5 y 120 caracteres.
 - Foto obligatoria cuando el estado del ítem no es `buen_estado`.
@@ -106,8 +107,9 @@ La capa A es la principal. La capa B existe para que la app funcione sin interne
 | `GET` | `/vehiculos/` | Listado paginado |
 | `GET` | `/vehiculos/<placa>/` | Hoja de vida resumida |
 | `GET` | `/hoja-vida/<placa>/` | Vista 360°: documentos, inspecciones, novedades, mantenimientos, incidentes |
-| `GET/POST` | `/documentos/` | Registrar o renovar documentos |
-| `GET/POST` | `/mantenimientos/` | Registrar mantenimiento manual: tipo, fecha, km, próximo km (v1.1) |
+| `GET/POST` | `/documentos/` | Registrar o renovar documentos (con soporte digital obligatorio) |
+| `GET` | `/conductores/` | Listado de conductores: datos, contacto de emergencia, licencia y estado (solo lectura para el admin) |
+| `GET/POST` | `/mantenimientos/` | Registrar mantenimiento manual: tipo, servicio, parte, fecha, km, próximo km (v1.1) |
 | `GET/POST` | `/incidentes/` | Registrar accidente o incidente (v1.1) |
 | `GET` | `/reportes/` | Cumplimiento, fallas repetidas, bloqueos |
 
@@ -117,6 +119,7 @@ La capa A es la principal. La capa B existe para que la app funcione sin interne
 |---|---|---|
 | `GET/POST` | `/maestros/vehiculos/` | Crear y editar vehículos |
 | `GET/POST` | `/maestros/conductores/` | Crear y editar conductores |
+| `POST` | `/maestros/conductores/<id>/baja/` | Dar de baja a un conductor (inactiva, cierra asignación y documentos) |
 | `GET/POST` | `/maestros/usuarios/` | Crear administradores (correo y Telegram incluidos) |
 | `GET/POST` | `/maestros/plantillas/` | Ítems de inspección, críticos y nivel |
 | `POST` | `/novedades/<id>/autorizar/` | Autorizar salida con falla (firma de responsabilidad) |
@@ -143,23 +146,37 @@ maestro).
 
 1. Se elige el vehículo. El sistema muestra su `km_actual` como referencia.
 2. El usuario confirma o corrige el **km que tenía el vehículo cuando se hizo** el mantenimiento.
-3. Se piden la **fecha en que se realizó** y el **km en que se cumple el próximo cambio**.
-4. Datos opcionales: próxima fecha, costo y observaciones.
+3. Se piden el **tipo** (preventivo o correctivo), el **servicio realizado**, la **parte intervenida**,
+   la **fecha en que se realizó** y el **km en que se cumple el próximo cambio**.
+4. Datos opcionales: próxima fecha, costo, observaciones y foto o PDF de la factura.
 5. Al guardar, la pantalla muestra **"faltan N km"** y avisa cuando la distancia restante baja del
    umbral configurado (por defecto **500 km**).
+
+**Tipo, servicio y parte (precisión 2026-11-15).** Son tres campos distintos y no se deben
+confundir: el **tipo** responde a *cuándo* se decidió intervenir (preventivo o correctivo), el
+**servicio** a *qué* se hizo y la **parte** a *dónde*. El catálogo de servicios no es el tipo: un
+cambio de aceite puede ser preventivo o correctivo. Esta separación salió de las maquetas del
+encargo 01 y sustituye la versión anterior, que llamaba `tipo` al catálogo de servicios.
 
 **Campos del formulario:**
 
 | Campo | Obligatorio | Validación |
 |---|---|---|
 | `vehiculo` | Sí | Debe existir y no estar dado de baja |
-| `tipo` | Sí | Catálogo: aceite, filtros, frenos, llantas, otro |
+| `tipo` | Sí | `preventivo` o `correctivo` |
+| `servicio` | Sí | Catálogo: aceite y filtro, aceite de motor, valvulina, líquido de frenos, líquido refrigerante, líquido de dirección hidráulica, líquido limpiaparabrisas, filtros, frenos, llantas, otro |
+| `parte` | Sí | Motor, transmisión, diferencial, sistema de frenos, sistema de dirección, suspensión, sistema de refrigeración, sistema eléctrico, aire acondicionado, llantas y ruedas, carrocería y cabina, otro |
 | `fecha` | Sí | No puede ser futura |
 | `km` | Sí | Mayor o igual al último kilometraje registrado del vehículo (R12) |
 | `proximo_km` | Sí | Mayor que `km` |
 | `proxima_fecha` | No | Si viene, debe ser posterior a `fecha` |
 | `costo` | No | Mayor o igual a 0 |
 | `observaciones` | No | Máximo 500 caracteres |
+| `soporte_factura` | No | Un archivo JPG, PNG, WebP o PDF de máximo 5 MB, validado por contenido real y no solo por extensión |
+
+**Factura:** es opcional. El mantenimiento se puede guardar sin ella y quedar en estado
+`pendiente`; cuando se adjunta pasa a `adjunta` y se ve desde la hoja de vida. Quien adjunta o
+reemplaza la factura y cuándo quedan auditados.
 
 Se rechaza con **400** cualquier combinación que incumpla las validaciones de `fecha`, `km` y
 `proximo_km`. Ningún mantenimiento se borra: se corrige con otro registro y queda auditado.
@@ -234,9 +251,9 @@ Error:
 |---|---|
 | **Usuario** | documento (único), email (único), rol, teléfono, telegram_chat_id, activo |
 | **Vehículo** | placa (única), marca, referencia, modelo, tipo_carrocería, VIN, motor, combustible, km_actual, propietario, estado_calculado |
-| **Conductor** | usuario, licencia_categoría, licencia_vencimiento, contacto_emergencia |
+| **Conductor** | usuario, licencia_categoría, licencia_vencimiento, contacto_emergencia, activo, fecha_baja, motivo_baja |
 | **Asignación** | vehículo, conductor, desde, hasta, autorizado_por, motivo |
-| **Documento** | tipo, vehículo/conductor, aseguradora, número, vencimiento, soporte |
+| **Documento** | tipo, vehículo/conductor, aseguradora, número, vencimiento, soporte (obligatorio: foto o PDF) |
 | **PlantillaInspección** | nombre, nivel (rápida/profunda), activa |
 | **ItemInspección** | plantilla, grupo, nombre, es_critico, requiere_foto, orden |
 | **Inspección** | vehículo, conductor, plantilla, fecha/hora, km, duración, firma, resultado |
@@ -245,10 +262,22 @@ Error:
 | **Novedad** | vehículo, conductor, origen, descripción, severidad, estado, requiere_superadmin |
 | **Gestión** | novedad, usuario, descripción, fecha |
 | **Autorización** | novedad, superadmin, justificación, hash, ip, fecha |
-| **Mantenimiento** | vehículo, tipo, fecha, km, costo, próximo_km, próxima_fecha (opcional), observaciones (v1.1) |
+| **Mantenimiento** | vehículo, tipo (preventivo/correctivo), servicio, parte, fecha, km, costo, próximo_km, próxima_fecha (opcional), observaciones, estado_factura (pendiente/adjunta), soporte_factura (v1.1) |
 | **Incidente** | vehículo, conductor, fecha, gravedad, descripción, causa, acción (v1.1) |
 | **Notificación** | usuario, evento, canal, estado, intentos, error, enviado_en |
 | **Auditoría** | usuario, acción, entidad, id, datos_antes, datos_despues, ip, fecha |
+
+**Reglas del modelo (precisión 2026-11-15):**
+
+- **Historial de conductores:** toda `Asignación` vehículo-conductor se conserva y debe poder
+  consultarse **al menos 2 años** (R18). La hoja de vida muestra las más recientes paginadas (5 por
+  página); lo que no se muestra sigue guardado y es consultable. Nunca se borra (R14).
+- **Soporte documental:** todo `Documento` debe tener `soporte` (foto o PDF) para quedar
+  **completo**, pero puede registrarse sin él: se guarda como **«soporte pendiente»** y se sube
+  después desde el PC, sin duplicarlo en otra tabla (R19, actualizada 2026-11-15).
+- **Baja de conductor:** dar de baja no borra nada: marca `activo = false`, registra `fecha_baja` y
+  `motivo_baja`, cierra su asignación vigente y excluye sus documentos de los vencimientos activos.
+  El historial de lo que hizo sigue visible (R20).
 
 ---
 
@@ -271,9 +300,21 @@ ABIERTA → EN_PROCESO → RESUELTA → VALIDADA
 | `OPERATIVO` | Sin bloqueos, sin servicio abierto |
 | `EN_SERVICIO` | Tiene un servicio abierto |
 | `BLOQUEADO_NOVEDAD` | Tiene novedad crítica sin validar |
-| `BLOQUEADO_DOCUMENTO` | SOAT, tecnomecánica o licencia vencidos |
+| `BLOQUEADO_DOCUMENTO` | SOAT, tecnomecánica o póliza del vehículo vencidos |
 | `EN_MANTENIMIENTO` | Mantenimiento abierto |
 | `FUERA_DE_SERVICIO` | Baja definitiva |
+
+**Precisión sobre la licencia (2026-11-15):** la licencia es un documento del **conductor**, no del
+vehículo. Una licencia vencida **no bloquea el vehículo**, pero impide que ese conductor inicie
+servicio (regla R21) y aparece en los vencimientos del panel y en la sección Conductores.
+
+### 8.3 Conductor
+
+| Estado | Condición |
+|---|---|
+| `ACTIVO` | Sin baja registrada; puede recibir vehículo e iniciar servicio |
+| `INACTIVO` | Con `fecha_baja`; no puede iniciar servicio ni recibir asignaciones nuevas |
+| `NO_HABILITADO` | Activo, pero con licencia vencida o sin licencia para la categoría del vehículo |
 
 ---
 
