@@ -1,70 +1,64 @@
-{% load static %}
-<!DOCTYPE html>
+{% load static %}<!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block titulo %}Mi Flota{% endblock %}</title>
-    <style>
-        :root {
-            --verde: #1b8a3e;
-            --verde-oscuro: #116327;
-            --crema: #fef7e5;
-            --marron: #3e110d;
-            --amarillo: #f7d117;
-            --gris-fondo: #f4f6f8;
-            --rojo-alerta: #d93838;
-        }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-
-        body {
-            background-color: var(--gris-fondo);
-            color: var(--marron);
-            font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
-            min-height: 100vh;
-        }
-
-        header {
-            background-color: var(--marron);
-            color: var(--crema);
-            padding: 18px 24px;
-            border-bottom: 5px solid var(--verde);
-        }
-
-        header h1 { font-size: 1.2rem; color: var(--amarillo); }
-
-        main { padding: 24px; max-width: 900px; margin: 0 auto; }
-
-        .tarjeta {
-            background: #fff;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 16px;
-            box-shadow: 0 4px 12px rgba(62, 17, 13, 0.06);
-            border-left: 5px solid var(--verde);
-        }
-
-        .etiqueta {
-            display: inline-block;
-            background: var(--crema);
-            color: var(--marron);
-            padding: 3px 10px;
-            border-radius: 999px;
-            font-size: 0.8rem;
-            font-weight: 700;
-        }
-
-        .rojo { color: var(--rojo-alerta); }
-        .ok { color: var(--verde); }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block titulo %}Mi Flota{% endblock %} · Mi Flota</title>
+  <link rel="stylesheet" href="{% static 'css/mi-flota.css' %}">
 </head>
 <body>
-    <header>
-        <h1>Mi Flota</h1>
-    </header>
-    <main>
-        {% block contenido %}{% endblock %}
-    </main>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      {# Logo neutro: el logo real de la empresa nunca se publica en el repositorio. #}
+      <div class="brand-marca" aria-hidden="true">MF</div>
+      <div class="brand-texto">
+        <strong>Mi Flota</strong>
+        <span>Control vehicular</span>
+      </div>
+    </div>
+
+    <nav class="menu">
+      <a href="/" {% if seccion == "panel" %}class="activo"{% endif %}>🏠 Panel</a>
+      {% if user.es_admin %}
+        <span class="pendiente" title="Disponible en v0.7">⚠️ Novedades</span>
+        <a href="{% url 'flota:lista' %}" {% if seccion == "vehiculos" %}class="activo"{% endif %}>🚛 Vehículos</a>
+        <span class="pendiente" title="Se abre desde cada vehículo">📋 Hoja de vida</span>
+        <a href="{% url 'flota:documentos' %}" {% if seccion == "documentos" %}class="activo"{% endif %}>📄 Documentos</a>
+        <span class="pendiente" title="Disponible en v1.1">🔧 Mantenimientos</span>
+        <span class="pendiente" title="Disponible en v0.10">📊 Reportes</span>
+      {% else %}
+        {# El conductor todavía no tiene pantallas: su inicio llega en v0.5. #}
+        <span class="pendiente" title="Disponible en v0.5">🚚 Mi servicio</span>
+        <span class="pendiente" title="Disponible en v0.7">⚠️ Reportar novedad</span>
+      {% endif %}
+    </nav>
+
+    <div class="sidebar-pie">
+      {% if user.is_authenticated %}
+        <strong>{{ user.get_full_name|default:user.documento }}</strong>
+        {{ user.get_rol_display }}
+        <form method="post" action="{% url 'logout' %}" style="margin-top:10px">
+          {% csrf_token %}
+          <button type="submit" class="boton boton-secundario">Cerrar sesión</button>
+        </form>
+      {% else %}
+        <a class="boton boton-secundario" href="{% url 'login' %}">Entrar</a>
+      {% endif %}
+    </div>
+  </aside>
+
+  <main class="contenido">
+    {% if messages %}
+      <div class="mensajes">
+        {% for mensaje in messages %}
+          <div class="aviso {% if mensaje.tags == 'error' %}aviso-error{% else %}aviso-exito{% endif %}">{{ mensaje }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% block contenido %}{% endblock %}
+  </main>
+</div>
 </body>
 </html>

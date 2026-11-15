@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block titulo %}Documentos{% endblock %}
+
+{% block contenido %}
+<div class="cabecera">
+  <div>
+    <h1>Documentos</h1>
+    <p>{{ documentos|length }} documentos{% if solo_pendientes %} con soporte pendiente{% endif %}</p>
+  </div>
+  <div>
+    {% if solo_pendientes %}
+      <a class="boton boton-secundario" href="{% url 'flota:documentos' %}">Ver todos</a>
+    {% else %}
+      <a class="boton boton-secundario" href="?soporte=pendiente">Solo soporte pendiente ({{ total_pendientes }})</a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="tarjeta">
+  {% if documentos %}
+    <table>
+      <thead>
+        <tr>
+          <th>Documento</th>
+          <th>Vehículo</th>
+          <th>Entidad</th>
+          <th>Vence</th>
+          <th>Estado</th>
+          <th>Soporte</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for documento in documentos %}
+          <tr>
+            <td>{{ documento.get_tipo_display }}</td>
+            <td>
+              {% if documento.vehiculo %}
+                <a href="{% url 'flota:detalle' documento.vehiculo.placa %}">{{ documento.vehiculo.placa }}</a>
+              {% else %}
+                {{ documento.conductor|default:"—" }}
+              {% endif %}
+            </td>
+            <td>{{ documento.entidad|default:"—" }}</td>
+            <td>{{ documento.vencimiento|date:"d/m/Y" }}</td>
+            <td>
+              {% if documento.estado == "Vencido" %}
+                <span class="insignia insignia-roja">Vencido</span>
+              {% elif documento.estado == "Por vencer" %}
+                <span class="insignia insignia-amarilla">Por vencer</span>
+              {% else %}
+                <span class="insignia insignia-verde">Vigente</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if documento.tiene_soporte %}
+                <span class="insignia insignia-verde">Cargado</span>
+              {% else %}
+                <span class="insignia insignia-amarilla">Soporte pendiente</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="vacio-panel">
+      {% if solo_pendientes %}Todos los documentos tienen su soporte cargado.{% else %}No hay documentos registrados.{% endif %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

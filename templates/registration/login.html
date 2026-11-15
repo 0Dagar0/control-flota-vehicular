@@ -1,0 +1,36 @@
+{% load static %}<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Iniciar sesión · Mi Flota</title>
+  <link rel="stylesheet" href="{% static 'css/mi-flota.css' %}">
+</head>
+<body>
+{# Esta pantalla no usa base.html: no lleva menú lateral porque todavía no hay sesión. #}
+<div class="login-fondo">
+  <form class="login-caja" method="post">
+    {% csrf_token %}
+    <div class="login-marca" aria-hidden="true">MF</div>
+    <h1>Mi Flota</h1>
+    <p class="sub">Control vehicular · ingresa con tu cédula</p>
+
+    {% if form.errors %}
+      <div class="aviso aviso-error">Cédula o contraseña incorrecta.</div>
+    {% endif %}
+
+    <div class="campo">
+      <label for="id_username">Cédula</label>
+      <input type="text" name="username" id="id_username" autocomplete="username" autofocus required>
+    </div>
+    <div class="campo">
+      <label for="id_password">Contraseña</label>
+      <input type="password" name="password" id="id_password" autocomplete="current-password" required>
+    </div>
+
+    <input type="hidden" name="next" value="{{ next }}">
+    <button type="submit" class="boton">Entrar</button>
+  </form>
+</div>
+</body>
+</html>

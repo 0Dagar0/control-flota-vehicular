@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block titulo %}Vehículos{% endblock %}
+
+{% block contenido %}
+<div class="cabecera">
+  <div>
+    <h1>Vehículos</h1>
+    <p>{{ vehiculos|length }} vehículos registrados en la flota</p>
+  </div>
+</div>
+
+<div class="tarjeta">
+  {% if vehiculos %}
+    <table>
+      <thead>
+        <tr>
+          <th>Placa</th>
+          <th>Vehículo</th>
+          <th>Año</th>
+          <th class="numero">Kilometraje</th>
+          <th>Estado</th>
+          <th>Documentos</th>
+          <th>Fotos</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for vehiculo in vehiculos %}
+          <tr>
+            <td><a href="{% url 'flota:detalle' vehiculo.placa %}"><strong>{{ vehiculo.placa }}</strong></a></td>
+            <td>{{ vehiculo.marca }} {{ vehiculo.referencia }}</td>
+            <td>{{ vehiculo.modelo }}</td>
+            <td class="numero">{{ vehiculo.km_actual|floatformat:"0g" }} km</td>
+            <td>
+              {% if vehiculo.estado == "operativo" %}
+                <span class="insignia insignia-verde">Operativo</span>
+              {% elif vehiculo.estado == "bloqueado_documento" %}
+                <span class="insignia insignia-roja">Bloqueado por documento</span>
+              {% else %}
+                <span class="insignia insignia-gris">{{ vehiculo.estado }}</span>
+              {% endif %}
+            </td>
+            <td>
+              {{ vehiculo.total_documentos }}
+              {% if vehiculo.documentos_sin_soporte %}
+                <span class="insignia insignia-amarilla">{{ vehiculo.documentos_sin_soporte }} sin soporte</span>
+              {% endif %}
+            </td>
+            <td>{{ vehiculo.total_fotos }} / 6</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="vacio-panel">
+      No hay vehículos registrados. Cárgalos con <code>manage.py cargar_flota_inicial</code>.
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

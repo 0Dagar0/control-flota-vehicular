@@ -1,0 +1,256 @@
+/* Mi Flota — estilos base tomados de las maquetas del encargo 01.
+   Un solo archivo para todas las pantallas (en las maquetas iba dentro de cada HTML). */
+
+:root {
+  --verde: #1b8a3e;
+  --verde-oscuro: #116327;
+  --vino: #380710;
+  --crema: #fef7e5;
+  --marron: #3e110d;
+  --amarillo: #f7d117;
+  --rojo: #d93838;
+  --blanco: #ffffff;
+  --borde: #e7ddc4;
+  --gris: #6f625d;
+  --sombra: 0 2px 6px rgba(62, 17, 13, 0.08);
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: "Nunito", "Segoe UI", system-ui, sans-serif;
+  background: var(--crema);
+  color: var(--marron);
+  font-size: 15px;
+  line-height: 1.5;
+}
+a { color: inherit; text-decoration: none; }
+h1, h2, h3, p, ul { margin: 0; }
+ul { padding: 0; list-style: none; }
+
+/* ---------- Estructura ---------- */
+.app { display: flex; min-height: 100vh; }
+.sidebar {
+  width: 248px;
+  flex: 0 0 248px;
+  background: var(--vino);
+  color: #fff;
+  padding: 22px 16px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 8px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+}
+.brand-marca {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--blanco);
+  color: var(--vino);
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: 0.5px;
+}
+.brand-texto strong { display: block; font-size: 14px; }
+.brand-texto span { font-size: 11px; opacity: 0.72; }
+
+.menu { margin-top: 18px; display: flex; flex-direction: column; gap: 2px; }
+.menu a, .menu span {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+}
+.menu a:hover { background: rgba(255, 255, 255, 0.08); }
+.menu a.activo {
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 3px 0 0 var(--amarillo);
+  font-weight: 700;
+}
+.menu .pendiente { opacity: 0.45; }
+
+.sidebar-pie {
+  margin-top: auto;
+  padding: 14px 10px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.16);
+  font-size: 12px;
+  opacity: 0.85;
+}
+.sidebar-pie strong { display: block; font-size: 13px; opacity: 1; }
+
+.contenido { flex: 1; min-width: 0; padding: 26px 32px 60px; }
+
+/* ---------- Encabezados ---------- */
+.cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+.cabecera h1 { font-size: 24px; }
+.cabecera p { color: var(--gris); font-size: 14px; }
+
+/* ---------- Tarjetas y tablas ---------- */
+.tarjeta {
+  background: var(--blanco);
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  box-shadow: var(--sombra);
+  padding: 18px 20px;
+  margin-bottom: 18px;
+}
+.tarjeta h2 { font-size: 16px; margin-bottom: 12px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--borde); }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--gris); }
+tbody tr:hover { background: rgba(27, 138, 62, 0.05); }
+td.numero { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* ---------- Insignias ---------- */
+.insignia {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.insignia-verde { background: rgba(27, 138, 62, 0.12); color: var(--verde-oscuro); }
+.insignia-amarilla { background: rgba(247, 209, 23, 0.22); color: #7a5f00; }
+.insignia-roja { background: rgba(217, 56, 56, 0.12); color: #a02020; }
+.insignia-gris { background: rgba(111, 98, 93, 0.14); color: var(--gris); }
+
+/* ---------- Fotos del vehículo ---------- */
+.rejilla-fotos {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.foto-slot {
+  border: 1px dashed var(--borde);
+  border-radius: 10px;
+  padding: 12px;
+  min-height: 132px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #fffdf7;
+}
+.foto-slot h3 { font-size: 13px; }
+.foto-slot img { width: 100%; height: 96px; object-fit: cover; border-radius: 8px; }
+.foto-slot .vacio { color: var(--gris); font-size: 12px; margin: auto 0; text-align: center; }
+.foto-slot .meta { font-size: 11px; color: var(--gris); }
+
+/* ---------- Botones ---------- */
+.boton {
+  display: inline-block;
+  padding: 9px 16px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: var(--verde);
+  color: #fff;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+}
+.boton:hover { background: var(--verde-oscuro); }
+.boton-secundario { background: var(--blanco); color: var(--marron); border-color: var(--borde); }
+.boton-secundario:hover { background: #f7f0dd; }
+
+/* ---------- Avisos ---------- */
+.mensajes { margin-bottom: 16px; }
+.aviso {
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  margin-bottom: 8px;
+  border: 1px solid var(--borde);
+  background: var(--blanco);
+}
+.aviso-exito { border-color: rgba(27, 138, 62, 0.4); background: rgba(27, 138, 62, 0.08); }
+.aviso-error { border-color: rgba(217, 56, 56, 0.4); background: rgba(217, 56, 56, 0.08); }
+
+.vacio-panel {
+  text-align: center;
+  color: var(--gris);
+  padding: 28px 16px;
+  border: 1px dashed var(--borde);
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+/* ---------- Login ---------- */
+.login-fondo {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background: var(--vino);
+  padding: 24px;
+}
+.login-caja {
+  width: 100%;
+  max-width: 380px;
+  background: var(--crema);
+  border-radius: 14px;
+  padding: 28px 26px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+.login-caja h1 { font-size: 20px; text-align: center; }
+.login-marca {
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 12px;
+  border-radius: 14px;
+  background: var(--vino);
+  color: var(--blanco);
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+.login-caja .sub { text-align: center; color: var(--gris); font-size: 13px; margin-bottom: 20px; }
+.campo { margin-bottom: 14px; }
+.campo label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 5px; }
+.campo input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  font-size: 15px;
+  background: #fff;
+  color: var(--marron);
+}
+.campo input:focus { outline: 2px solid var(--verde); outline-offset: 1px; }
+.login-caja .boton { width: 100%; text-align: center; }
+
+/* ---------- Móvil ---------- */
+@media (max-width: 900px) {
+  .app { flex-direction: column; }
+  .sidebar {
+    width: 100%;
+    flex: none;
+    height: auto;
+    position: static;
+    padding: 14px 16px;
+  }
+  .menu { flex-direction: row; overflow-x: auto; margin-top: 12px; }
+  .menu a, .menu span { white-space: nowrap; }
+  .sidebar-pie { display: none; }
+  .contenido { padding: 18px 16px 40px; }
+  .rejilla-fotos { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  table { display: block; overflow-x: auto; }
+}

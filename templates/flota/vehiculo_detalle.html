@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block titulo %}Hoja de vida {{ vehiculo.placa }}{% endblock %}
+
+{% block contenido %}
+<div class="cabecera">
+  <div>
+    <h1>{{ vehiculo.placa }} · {{ vehiculo.marca }} {{ vehiculo.referencia }}</h1>
+    <p>Hoja de vida del vehículo</p>
+  </div>
+  <a class="boton boton-secundario" href="{% url 'flota:lista' %}">Volver a la flota</a>
+</div>
+
+<div class="tarjeta">
+  <h2>Identificación</h2>
+  <table>
+    <tbody>
+      <tr><th>Marca y referencia</th><td>{{ vehiculo.marca }} {{ vehiculo.referencia }}</td></tr>
+      <tr><th>Modelo (año)</th><td>{{ vehiculo.modelo }}</td></tr>
+      <tr><th>VIN</th><td>{{ vehiculo.vin|default:"—" }}</td></tr>
+      <tr><th>Motor</th><td>{{ vehiculo.motor|default:"—" }}</td></tr>
+      <tr><th>Combustible</th><td>{{ vehiculo.get_combustible_display }}</td></tr>
+      <tr><th>Kilometraje</th><td>{{ vehiculo.km_actual }} km</td></tr>
+      <tr><th>Propietario</th><td>{{ vehiculo.propietario|default:"—" }}</td></tr>
+      <tr>
+        <th>Estado</th>
+        <td>
+          {% if vehiculo.estado == "operativo" %}
+            <span class="insignia insignia-verde">Operativo</span>
+          {% elif vehiculo.estado == "bloqueado_documento" %}
+            <span class="insignia insignia-roja">Bloqueado por documento vencido</span>
+          {% else %}
+            <span class="insignia insignia-gris">{{ vehiculo.get_estado_display|default:vehiculo.estado }}</span>
+          {% endif %}
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="tarjeta">
+  <h2>Documentos y vencimientos</h2>
+  {% if documentos %}
+    <table>
+      <thead>
+        <tr>
+          <th>Documento</th>
+          <th>Entidad</th>
+          <th>Número</th>
+          <th>Vence</th>
+          <th>Estado</th>
+          <th>Soporte</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for documento in documentos %}
+          <tr>
+            <td>{{ documento.get_tipo_display }}</td>
+            <td>{{ documento.entidad|default:"—" }}</td>
+            <td>{{ documento.numero|default:"—" }}</td>
+            <td>{{ documento.vencimiento|date:"d/m/Y" }}</td>
+            <td>
+              {% if documento.estado == "Vencido" %}
+                <span class="insignia insignia-roja">Vencido</span>
+              {% elif documento.estado == "Por vencer" %}
+                <span class="insignia insignia-amarilla">Por vencer</span>
+              {% else %}
+                <span class="insignia insignia-verde">Vigente</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if documento.tiene_soporte %}
+                <span class="insignia insignia-verde">Cargado</span>
+              {% else %}
+                <span class="insignia insignia-amarilla">Soporte pendiente</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="vacio-panel">Este vehículo no tiene documentos registrados.</div>
+  {% endif %}
+</div>
+
+<div class="tarjeta">
+  <h2>Fotos del vehículo</h2>
+  <div class="rejilla-fotos">
+    {% for espacio in espacios_foto %}
+      <div class="foto-slot">
+        <h3>{{ espacio.etiqueta }}</h3>
+        {% if espacio.foto %}
+          <img src="{{ espacio.foto.imagen.url }}" alt="Foto {{ espacio.etiqueta }} de {{ vehiculo.placa }}">
+          <span class="meta">Subida el {{ espacio.foto.subida_en|date:"d/m/Y" }}</span>
+        {% else %}
+          <span class="vacio">Sin foto</span>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+  <p class="meta">Las fotos se suben desde el panel de administración mientras llega la pantalla de carga.</p>
+</div>
+{% endblock %}

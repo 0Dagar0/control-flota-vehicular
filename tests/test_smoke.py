@@ -4,8 +4,8 @@ from django.urls import reverse
 
 
 @pytest.mark.django_db
-def test_pagina_inicio_responde(client):
-    respuesta = client.get(reverse("inicio"))
+def test_pagina_estado_responde(client):
+    respuesta = client.get(reverse("estado"))
 
     assert respuesta.status_code == 200
     assert "Mi Flota" in respuesta.content.decode()
