@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block titulo %}{{ titulo }}{% endblock %}
+
+{# Plantilla única para todos los formularios de datos maestros:
+   la vista envía `titulo`, `subtitulo`, `boton` y `volver`. #}
+{% block contenido %}
+<div class="cabecera">
+  <div>
+    <h1>{{ titulo }}</h1>
+    {% if subtitulo %}<p>{{ subtitulo }}</p>{% endif %}
+  </div>
+</div>
+
+<div class="tarjeta">
+  <form method="post" class="formulario" novalidate>
+    {% csrf_token %}
+
+    {% if form.non_field_errors %}
+      <div class="aviso aviso-error ancho">{{ form.non_field_errors }}</div>
+    {% endif %}
+
+    {% for campo in form %}
+      <div class="campo{% if campo.field.widget.input_type == "textarea" %} ancho{% endif %}">
+        <label for="{{ campo.id_for_label }}">
+          {{ campo.label }}{% if campo.field.required %} <span class="obligatorio">*</span>{% endif %}
+        </label>
+        {{ campo }}
+        {% if campo.help_text %}<span class="ayuda">{{ campo.help_text }}</span>{% endif %}
+        {% for error in campo.errors %}<span class="error">{{ error }}</span>{% endfor %}
+      </div>
+    {% endfor %}
+
+    <div class="acciones ancho">
+      <button type="submit" class="boton">{{ boton }}</button>
+      <a class="boton boton-secundario" href="{{ volver }}">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

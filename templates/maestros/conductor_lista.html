@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block titulo %}Conductores{% endblock %}
+
+{% block contenido %}
+<div class="cabecera">
+  <div>
+    <h1>Conductores</h1>
+    <p>{{ conductores|length }} conductores registrados</p>
+  </div>
+  {% if puede_editar %}
+    <a class="boton" href="{% url 'maestros:conductor_nuevo' %}">Nuevo conductor</a>
+  {% endif %}
+</div>
+
+<div class="tarjeta">
+  {% if conductores %}
+    <table>
+      <thead>
+        <tr>
+          <th>Conductor</th>
+          <th>Cédula</th>
+          <th>Teléfono</th>
+          <th>Licencia</th>
+          <th>Vence</th>
+          <th>Estado</th>
+          {% if puede_editar %}<th>Acciones</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for conductor in conductores %}
+          <tr>
+            <td><strong>{{ conductor }}</strong></td>
+            <td>{{ conductor.usuario.documento }}</td>
+            <td>{{ conductor.usuario.telefono|default:"—" }}</td>
+            <td>{{ conductor.get_licencia_categoria_display }}</td>
+            <td>{{ conductor.licencia_vencimiento|date:"d/m/Y" }}</td>
+            <td>
+              {% if conductor.estado == "activo" %}
+                <span class="insignia insignia-verde">Activo</span>
+              {% elif conductor.estado == "inactivo" %}
+                <span class="insignia insignia-gris">Inactivo</span>
+              {% else %}
+                <span class="insignia insignia-roja">No habilitado (licencia)</span>
+              {% endif %}
+            </td>
+            {% if puede_editar %}
+              <td class="acciones-fila">
+                <a class="enlace" href="{% url 'maestros:conductor_editar' conductor.pk %}">Editar</a>
+                {% if conductor.activo %}
+                  <a class="enlace enlace-rojo" href="{% url 'maestros:conductor_baja' conductor.pk %}">Dar de baja</a>
+                {% endif %}
+              </td>
+            {% endif %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="vacio-panel">
+      Todavía no hay conductores. {% if puede_editar %}Usa «Nuevo conductor» para crear el primero.{% endif %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -24,9 +24,13 @@
         <span class="pendiente" title="Disponible en v0.7">⚠️ Novedades</span>
         <a href="{% url 'flota:lista' %}" {% if seccion == "vehiculos" %}class="activo"{% endif %}>🚛 Vehículos</a>
         <span class="pendiente" title="Se abre desde cada vehículo">📋 Hoja de vida</span>
-        <a href="{% url 'flota:documentos' %}" {% if seccion == "documentos" %}class="activo"{% endif %}>📄 Documentos</a>
+        <a href="{% url 'documentos:lista' %}" {% if seccion == "documentos" %}class="activo"{% endif %}>📄 Documentos</a>
+        <a href="{% url 'conductores' %}" {% if seccion == "conductores" %}class="activo"{% endif %}>👤 Conductores</a>
         <span class="pendiente" title="Disponible en v1.1">🔧 Mantenimientos</span>
         <span class="pendiente" title="Disponible en v0.10">📊 Reportes</span>
+        {% if user.es_superadmin %}
+          <a href="{% url 'maestros:usuario_lista' %}" {% if seccion == "usuarios" %}class="activo"{% endif %}>🔑 Usuarios</a>
+        {% endif %}
       {% else %}
         {# El conductor todavía no tiene pantallas: su inicio llega en v0.5. #}
         <span class="pendiente" title="Disponible en v0.5">🚚 Mi servicio</span>

@@ -9,7 +9,7 @@
   </div>
   <div>
     {% if solo_pendientes %}
-      <a class="boton boton-secundario" href="{% url 'flota:documentos' %}">Ver todos</a>
+      <a class="boton boton-secundario" href="{% url 'documentos:lista' %}">Ver todos</a>
     {% else %}
       <a class="boton boton-secundario" href="?soporte=pendiente">Solo soporte pendiente ({{ total_pendientes }})</a>
     {% endif %}

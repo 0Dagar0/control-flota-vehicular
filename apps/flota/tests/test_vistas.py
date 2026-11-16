@@ -120,7 +120,7 @@ def test_detalle_muestra_soporte_pendiente_y_seis_fotos(
 
 def test_lista_documentos_filtra_pendientes(client, admin, vehiculo, documento_sin_soporte):
     client.force_login(admin)
-    respuesta = client.get(reverse("flota:documentos"), {"soporte": "pendiente"})
+    respuesta = client.get(reverse("documentos:lista"), {"soporte": "pendiente"})
     assert respuesta.status_code == 200
     assert b"ABC123" in respuesta.content
     assert b"Soporte pendiente" in respuesta.content

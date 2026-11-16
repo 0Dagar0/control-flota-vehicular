@@ -1,4 +1,4 @@
-"""Rutas de la flota."""
+"""Rutas de vehículos de la flota (contrato §5.2)."""
 
 from django.urls import path
 
@@ -8,6 +8,5 @@ app_name = "flota"
 
 urlpatterns = [
     path("", views.VehiculoListaView.as_view(), name="lista"),
-    path("vehiculos/<str:placa>/", views.VehiculoDetalleView.as_view(), name="detalle"),
-    path("documentos/", views.DocumentoListaView.as_view(), name="documentos"),
+    path("<str:placa>/", views.VehiculoDetalleView.as_view(), name="detalle"),
 ]

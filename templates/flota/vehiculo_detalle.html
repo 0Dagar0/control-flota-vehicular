@@ -7,7 +7,12 @@
     <h1>{{ vehiculo.placa }} · {{ vehiculo.marca }} {{ vehiculo.referencia }}</h1>
     <p>Hoja de vida del vehículo</p>
   </div>
-  <a class="boton boton-secundario" href="{% url 'flota:lista' %}">Volver a la flota</a>
+  <div class="acciones-fila">
+    {% if user.es_superadmin %}
+      <a class="boton boton-secundario" href="{% url 'maestros:vehiculo_editar' vehiculo.placa %}">Editar</a>
+    {% endif %}
+    <a class="boton boton-secundario" href="{% url 'flota:lista' %}">Volver a la flota</a>
+  </div>
 </div>
 
 <div class="tarjeta">

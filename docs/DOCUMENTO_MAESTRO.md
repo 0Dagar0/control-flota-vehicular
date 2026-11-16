@@ -110,7 +110,7 @@ Vehículo, Conductor, Documento, Configuración. Carga de la flota inicial. Migr
 ### v0.3 — Acceso
 Login, logout, permisos por rol, plantilla base de la interfaz.
 
-### v0.4 — Maestros
+### v0.4 — Maestros *(completada)*
 CRUD de vehículos, conductores, usuarios y plantillas. Alta de administradores con correo y Telegram.
 
 ### v0.5 — Servicio
@@ -303,6 +303,18 @@ permisos validados en el servidor, bloqueo por intentos fallidos (v1.1), HTTPS e
   admin y superadmin → flota. 46 pruebas pasan, `ruff` limpio, sin migraciones pendientes.
 - **Encargo 02 entregado al agente de diseño** con plan de 4 días (16 al 19/11/2026): galería de
   fotos, documentos y visor, conductores y baja, y novedades/vehículos/factura.
+
+### Estado al 2026-11-15 (v0.4)
+
+- **v0.4 completada:** app `apps.maestros` con los formularios de `/maestros/`: alta y edición de
+  vehículos, alta y edición de conductores (crea también su usuario), baja de conductor con fecha y
+  motivo (R20) y alta/edición de administradores con correo y Telegram.
+- **Rutas alineadas con el contrato:** `/vehiculos/`, `/vehiculos/<placa>/`, `/documentos/`,
+  `/conductores/` (solo lectura para el administrador) y `/maestros/...` (solo superadministrador).
+- **58 pruebas** pasan, `ruff` limpio, sin migraciones pendientes (la app `maestros` no tiene
+  modelos propios).
+- **Siguiente:** v0.5 (servicio del conductor: inicio y cierre con km, ruta y novedad), después de
+  integrar los Días 1 y 2 del encargo 02.
 
 ---
 

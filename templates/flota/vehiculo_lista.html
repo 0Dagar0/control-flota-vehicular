@@ -7,6 +7,9 @@
     <h1>Vehículos</h1>
     <p>{{ vehiculos|length }} vehículos registrados en la flota</p>
   </div>
+  {% if user.es_superadmin %}
+    <a class="boton" href="{% url 'maestros:vehiculo_nuevo' %}">Nuevo vehículo</a>
+  {% endif %}
 </div>
 
 <div class="tarjeta">

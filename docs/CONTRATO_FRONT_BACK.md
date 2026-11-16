@@ -74,6 +74,11 @@ La capa A es la principal. La capa B existe para que la app funcione sin interne
 
 ## 5. Capa A — Rutas web
 
+> **Estado de implementación (2026-11-15):** ya existen `/cuenta/login/`, `/`,
+> `/vehiculos/`, `/vehiculos/<placa>/`, `/documentos/`, `/conductores/` y las rutas
+> `/maestros/...` (§5.3). El resto de esta sección está acordado pero todavía no existe en el
+> código; cada versión del documento maestro indica cuándo se implementa.
+
 ### 5.1 Conductor
 
 | Método | Ruta | Entrada | Salida |
