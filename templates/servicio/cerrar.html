@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block titulo %}Cerrar servicio{% endblock %}
+
+{% block contenido %}
+<div class="cabecera">
+  <div>
+    <h1>Cerrar servicio</h1>
+    {% if servicio %}
+      <p>{{ servicio.vehiculo.placa }} · iniciado a las {{ servicio.iniciado_en|date:"H:i" }}</p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="tarjeta">
+  {% if servicio %}
+    <h2>Resumen del recorrido</h2>
+    <div class="resumen">
+      <div>
+        <span>Ruta u operación</span>
+        <strong>{{ servicio.ruta }}</strong>
+      </div>
+      <div>
+        <span>Hora de inicio</span>
+        <strong>{{ servicio.iniciado_en|date:"H:i" }}</strong>
+      </div>
+      <div>
+        <span>Kilometraje inicial</span>
+        <strong>{{ servicio.km_inicial }} km</strong>
+      </div>
+      <div>
+        <span>Km recorridos hasta ahora</span>
+        <strong>— (se calculan al cerrar)</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="tarjeta">
+    <form method="post" class="formulario" novalidate>
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div class="aviso aviso-error ancho">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      <div class="campo">
+        <label for="{{ form.km_final.id_for_label }}">
+          {{ form.km_final.label }} <span class="obligatorio">*</span>
+        </label>
+        {{ form.km_final }}
+        <span class="ayuda">Debe ser igual o mayor al kilometraje inicial ({{ servicio.km_inicial }} km).</span>
+        {% for error in form.km_final.errors %}<span class="error">{{ error }}</span>{% endfor %}
+      </div>
+
+      <div class="campo campo-check">
+        {{ form.sin_novedad }}
+        <label for="{{ form.sin_novedad.id_for_label }}">{{ form.sin_novedad.label }}</label>
+      </div>
+      <span class="ayuda ancho">
+        Esta casilla viene marcada: si el recorrido terminó sin problemas, cierra de una vez.
+      </span>
+
+      <details class="novedad ancho">
+        <summary>Reportar novedad (opcional)</summary>
+        <div class="campo" style="margin-top:12px">
+          <label for="{{ form.observacion_cierre.id_for_label }}">{{ form.observacion_cierre.label }}</label>
+          {{ form.observacion_cierre }}
+          <span class="ayuda">
+            Si desmarcas «{{ form.sin_novedad.label }}», describe qué pasó: el administrador
+            revisará la novedad y el vehículo puede quedar bloqueado hasta que la gestione.
+          </span>
+          {% for error in form.observacion_cierre.errors %}<span class="error">{{ error }}</span>{% endfor %}
+        </div>
+      </details>
+
+      <div class="acciones ancho">
+        <button type="submit" class="boton boton-grande">Cerrar servicio</button>
+        <a class="enlace" href="{% url 'mi_servicio' %}">Cancelar</a>
+      </div>
+    </form>
+  </div>
+{% else %}
+  <div class="vacio-panel">No tienes ningún servicio en curso.</div>
+{% endif %}
+{% endblock %}

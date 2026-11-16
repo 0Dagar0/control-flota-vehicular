@@ -4,13 +4,16 @@ from django.contrib import admin
 from django.urls import include, path
 
 from apps.maestros import views as maestros
+from apps.servicio.views import MiServicioView
 from config.views import estado, inicio
 
 urlpatterns = [
     path("admin/", admin.site.urls),
     # Rutas de acceso que trae Django: login, logout, cambio de contraseña.
     path("cuenta/", include("django.contrib.auth.urls")),
-    # Capa web del contrato (§5.2 y §5.3).
+    # Capa web del contrato (§5.1 a §5.3).
+    path("conductor/", MiServicioView.as_view(), name="mi_servicio"),
+    path("servicio/", include("apps.servicio.urls")),
     path("vehiculos/", include("apps.flota.urls")),
     path("documentos/", include("apps.flota.urls_documentos")),
     path("conductores/", maestros.ConductorListaView.as_view(), name="conductores"),

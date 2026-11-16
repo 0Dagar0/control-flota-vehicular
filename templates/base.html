@@ -32,8 +32,7 @@
           <a href="{% url 'maestros:usuario_lista' %}" {% if seccion == "usuarios" %}class="activo"{% endif %}>🔑 Usuarios</a>
         {% endif %}
       {% else %}
-        {# El conductor todavía no tiene pantallas: su inicio llega en v0.5. #}
-        <span class="pendiente" title="Disponible en v0.5">🚚 Mi servicio</span>
+        <a href="{% url 'mi_servicio' %}" {% if seccion == "mi_servicio" %}class="activo"{% endif %}>🚚 Mi servicio</a>
         <span class="pendiente" title="Disponible en v0.7">⚠️ Reportar novedad</span>
       {% endif %}
     </nav>

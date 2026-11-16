@@ -23,7 +23,8 @@
           <th>Licencia</th>
           <th>Vence</th>
           <th>Estado</th>
-          {% if puede_editar %}<th>Acciones</th>{% endif %}
+          <th>Vehículo</th>
+          {% if puede_editar or puede_asignar %}<th>Acciones</th>{% endif %}
         </tr>
       </thead>
       <tbody>
@@ -43,10 +44,26 @@
                 <span class="insignia insignia-roja">No habilitado (licencia)</span>
               {% endif %}
             </td>
-            {% if puede_editar %}
+            <td>
+              {% with vehiculo=conductor.vehiculo_actual %}
+                {% if vehiculo %}
+                  <strong>{{ vehiculo.placa }}</strong> · {{ vehiculo.marca }}
+                {% else %}
+                  <span class="insignia insignia-gris">Sin asignar</span>
+                {% endif %}
+              {% endwith %}
+            </td>
+            {% if puede_editar or puede_asignar %}
               <td class="acciones-fila">
-                <a class="enlace" href="{% url 'maestros:conductor_editar' conductor.pk %}">Editar</a>
-                {% if conductor.activo %}
+                {% if puede_editar %}
+                  <a class="enlace" href="{% url 'maestros:conductor_editar' conductor.pk %}">Editar</a>
+                {% endif %}
+                {% if puede_asignar and conductor.activo %}
+                  <a class="enlace" href="{% url 'maestros:conductor_asignar' conductor.pk %}">
+                    {% if conductor.vehiculo_actual %}Cambiar vehículo{% else %}Asignar vehículo{% endif %}
+                  </a>
+                {% endif %}
+                {% if puede_editar and conductor.activo %}
                   <a class="enlace enlace-rojo" href="{% url 'maestros:conductor_baja' conductor.pk %}">Dar de baja</a>
                 {% endif %}
               </td>

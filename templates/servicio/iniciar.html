@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block titulo %}Iniciar servicio{% endblock %}
+
+{% block contenido %}
+<div class="cabecera">
+  <div>
+    <h1>Iniciar servicio</h1>
+    {% if asignacion %}
+      <p>{{ asignacion.vehiculo.placa }} · {{ asignacion.vehiculo.marca }} {{ asignacion.vehiculo.referencia }} · {{ asignacion.vehiculo.km_actual }} km registrados</p>
+    {% else %}
+      <p>No tienes vehículo asignado.</p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="tarjeta">
+  {% if asignacion %}
+    <form method="post" class="formulario" novalidate>
+      {% csrf_token %}
+
+      {% if form.non_field_errors %}
+        <div class="aviso aviso-error ancho">{{ form.non_field_errors }}</div>
+      {% endif %}
+
+      {% for campo in form %}
+        <div class="campo">
+          <label for="{{ campo.id_for_label }}">
+            {{ campo.label }}{% if campo.field.required %} <span class="obligatorio">*</span>{% endif %}
+          </label>
+          {{ campo }}
+          {% if campo.help_text %}<span class="ayuda">{{ campo.help_text }}</span>{% endif %}
+          {% for error in campo.errors %}<span class="error">{{ error }}</span>{% endfor %}
+        </div>
+      {% endfor %}
+
+      <div class="aviso ancho">
+        El kilometraje solo puede subir (R12): si escribes un número menor al que ya tiene
+        el vehículo, el sistema no te deja continuar.
+      </div>
+
+      <div class="acciones ancho">
+        <button type="submit" class="boton boton-grande">Iniciar servicio</button>
+        <a class="enlace" href="{% url 'mi_servicio' %}">Cancelar</a>
+      </div>
+    </form>
+  {% else %}
+    <div class="vacio-panel">
+      No puedes iniciar servicio sin vehículo asignado. Pídeselo al administrador.
+    </div>
+    <div class="acciones" style="margin-top:16px">
+      <a class="enlace" href="{% url 'mi_servicio' %}">Volver a mi servicio</a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

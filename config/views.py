@@ -13,8 +13,8 @@ def inicio(request):
         return redirect("login")
     if request.user.es_admin:
         return redirect("flota:lista")
-    # El conductor todavía no tiene pantallas propias (llegan en v0.5).
-    return render(request, "pendiente.html", {"seccion": "panel"})
+    # El conductor entra directo a su pantalla de servicio (v0.5).
+    return redirect("mi_servicio")
 
 
 def estado(request):

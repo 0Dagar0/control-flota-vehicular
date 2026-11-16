@@ -2,7 +2,15 @@
 
 from django.contrib import admin
 
-from .models import Conductor, Configuracion, Documento, FotoVehiculo, Vehiculo
+from .models import (
+    Asignacion,
+    Conductor,
+    Configuracion,
+    Documento,
+    FotoVehiculo,
+    Servicio,
+    Vehiculo,
+)
 
 
 class DocumentoVehiculoInline(admin.TabularInline):
@@ -160,6 +168,52 @@ class FotoVehiculoAdmin(admin.ModelAdmin):
         if not obj.subido_por_id:
             obj.subido_por = request.user
         super().save_model(request, obj, form, change)
+
+
+@admin.register(Asignacion)
+class AsignacionAdmin(admin.ModelAdmin):
+    """Historial de vehículo por conductor (R18): se cierra, no se borra."""
+
+    list_display = ("vehiculo", "conductor", "fecha_inicio", "fecha_fin", "motivo_fin")
+    list_filter = ("fecha_inicio", "fecha_fin")
+    search_fields = (
+        "vehiculo__placa",
+        "conductor__usuario__documento",
+        "conductor__usuario__first_name",
+        "conductor__usuario__last_name",
+    )
+    autocomplete_fields = ("vehiculo", "conductor")
+    readonly_fields = ("creado_en", "creado_por")
+    date_hierarchy = "fecha_inicio"
+
+    def save_model(self, request, obj, form, change):
+        if not obj.creado_por_id:
+            obj.creado_por = request.user
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(Servicio)
+class ServicioAdmin(admin.ModelAdmin):
+    """Servicios iniciados y cerrados por los conductores."""
+
+    list_display = (
+        "vehiculo",
+        "conductor",
+        "iniciado_en",
+        "km_inicial",
+        "km_final",
+        "km_recorridos",
+        "sin_novedad",
+    )
+    list_filter = ("sin_novedad", "vehiculo__marca")
+    search_fields = ("vehiculo__placa", "conductor__usuario__documento", "ruta")
+    autocomplete_fields = ("vehiculo", "conductor")
+    readonly_fields = ("iniciado_en", "cerrado_en", "km_recorridos")
+    date_hierarchy = "iniciado_en"
+
+    @admin.display(description="km recorridos")
+    def km_recorridos(self, obj):
+        return obj.km_recorridos if obj.km_recorridos is not None else "—"
 
 
 @admin.register(Configuracion)

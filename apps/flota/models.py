@@ -150,6 +150,11 @@ class Vehiculo(models.Model):
             return self.Estado.BLOQUEADO_DOCUMENTO
         return self.Estado.OPERATIVO
 
+    @property
+    def estado_etiqueta(self) -> str:
+        """Nombre legible del estado, para mostrarlo en las plantillas."""
+        return self.Estado(self.estado).label
+
 
 def ruta_foto_vehiculo(instancia: "FotoVehiculo", nombre_original: str) -> str:
     """Nombre descriptivo del archivo: ``fotos/vehiculos/2026/11/ABC123-frontal.jpg``."""
@@ -318,6 +323,16 @@ class Conductor(models.Model):
             return self.Estado.NO_HABILITADO
         return self.Estado.ACTIVO
 
+    @property
+    def vehiculo_actual(self):
+        """Vehículo asignado hoy, o ``None`` (la asignación la hace el admin)."""
+        asignacion = (
+            self.asignaciones.filter(fecha_fin__isnull=True)
+            .select_related("vehiculo")
+            .first()
+        )
+        return asignacion.vehiculo if asignacion else None
+
 
 class Documento(models.Model):
     """Documento del vehículo o del conductor, con su soporte digital.
@@ -436,3 +451,156 @@ class Documento(models.Model):
             .values_list("vencimiento", flat=True)
             .first()
         )
+
+
+class Asignacion(models.Model):
+    """Vehículo asignado a un conductor, con historial (R18).
+
+    Solo el administrador o el superadministrador crean asignaciones; el
+    conductor nunca se asigna un vehículo. Un vehículo y un conductor pueden
+    tener **una sola** asignación activa a la vez: al cambiar de vehículo se
+    cierra la anterior con fecha y motivo, y no se borra nada.
+    """
+
+    vehiculo = models.ForeignKey(
+        Vehiculo,
+        verbose_name="vehículo",
+        on_delete=models.PROTECT,
+        related_name="asignaciones",
+    )
+    conductor = models.ForeignKey(
+        Conductor,
+        verbose_name="conductor",
+        on_delete=models.PROTECT,
+        related_name="asignaciones",
+    )
+    fecha_inicio = models.DateField("fecha de inicio", default=timezone.localdate)
+    fecha_fin = models.DateField("fecha de fin", null=True, blank=True)
+    motivo_fin = models.CharField("motivo del cambio o fin", max_length=200, blank=True)
+
+    creado_en = models.DateTimeField("creada en", auto_now_add=True)
+    creado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name="creada por",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+
+    class Meta:
+        verbose_name = "asignación de vehículo"
+        verbose_name_plural = "asignaciones de vehículo"
+        ordering = ["-fecha_inicio", "-pk"]
+
+    def __str__(self):
+        return f"{self.vehiculo.placa} · {self.conductor} · desde {self.fecha_inicio:%d/%m/%Y}"
+
+    @property
+    def activa(self) -> bool:
+        return self.fecha_fin is None
+
+    def clean(self):
+        super().clean()
+        if self.fecha_fin and self.fecha_fin < self.fecha_inicio:
+            raise ValidationError(
+                {"fecha_fin": "La fecha de fin no puede ser anterior a la de inicio."}
+            )
+        if not self.activa:
+            return
+        # Una sola asignación activa por vehículo y por conductor.
+        otras = Asignacion.objects.filter(fecha_fin__isnull=True).exclude(pk=self.pk)
+        if otras.filter(vehiculo=self.vehiculo).exists():
+            raise ValidationError(
+                {"vehiculo": "Ese vehículo ya está asignado a otro conductor."}
+            )
+        if otras.filter(conductor=self.conductor).exists():
+            raise ValidationError(
+                {"conductor": "Ese conductor ya tiene un vehículo asignado."}
+            )
+
+    @classmethod
+    def activa_de(cls, conductor: Conductor) -> "Asignacion | None":
+        """Asignación vigente de un conductor, si tiene una."""
+        return (
+            cls.objects.filter(conductor=conductor, fecha_fin__isnull=True)
+            .select_related("vehiculo")
+            .first()
+        )
+
+
+class Servicio(models.Model):
+    """Recorrido de un conductor: se inicia con km y ruta, se cierra con km.
+
+    Reglas aplicadas:
+
+    - **R12** el kilometraje nunca disminuye: el km inicial no puede ser menor al
+      del vehículo y el final no puede ser menor al inicial.
+    - El cierre **siempre** se permite; el bloqueo por documento o por licencia
+      se aplica al **iniciar**.
+    - Se puede cerrar **sin novedad**; la novedad como registro propio llega en
+      la v0.7.
+    """
+
+    class Estado(models.TextChoices):
+        EN_CURSO = "en_curso", "En curso"
+        CERRADO = "cerrado", "Cerrado"
+
+    vehiculo = models.ForeignKey(
+        Vehiculo,
+        verbose_name="vehículo",
+        on_delete=models.PROTECT,
+        related_name="servicios",
+    )
+    conductor = models.ForeignKey(
+        Conductor,
+        verbose_name="conductor",
+        on_delete=models.PROTECT,
+        related_name="servicios",
+    )
+    km_inicial = models.PositiveIntegerField("kilometraje inicial")
+    ruta = models.CharField("ruta u operación", max_length=200)
+    iniciado_en = models.DateTimeField("iniciado en", auto_now_add=True)
+
+    km_final = models.PositiveIntegerField("kilometraje final", null=True, blank=True)
+    cerrado_en = models.DateTimeField("cerrado en", null=True, blank=True)
+    sin_novedad = models.BooleanField("cerrado sin novedad", default=True)
+    observacion_cierre = models.CharField(
+        "observación del cierre", max_length=200, blank=True
+    )
+
+    class Meta:
+        verbose_name = "servicio"
+        verbose_name_plural = "servicios"
+        ordering = ["-iniciado_en", "-pk"]
+
+    def __str__(self):
+        return f"{self.vehiculo.placa} · {self.conductor} · {self.iniciado_en:%d/%m/%Y}"
+
+    @property
+    def estado(self) -> str:
+        return self.Estado.EN_CURSO if self.cerrado_en is None else self.Estado.CERRADO
+
+    @property
+    def km_recorridos(self) -> int | None:
+        if self.km_final is None:
+            return None
+        return self.km_final - self.km_inicial
+
+    def clean(self):
+        super().clean()
+        if self.km_final is None:
+            return
+        if self.km_final < self.km_inicial:
+            raise ValidationError(
+                {"km_final": "El kilometraje final no puede ser menor al inicial."}
+            )
+        if self.cerrado_en is None:
+            raise ValidationError(
+                {"cerrado_en": "Si registra el kilometraje final, cierre el servicio."}
+            )
+
+    @classmethod
+    def en_curso_de(cls, conductor: Conductor) -> "Servicio | None":
+        return cls.objects.filter(conductor=conductor, cerrado_en__isnull=True).first()
+

@@ -32,6 +32,7 @@ INSTALLED_APPS = [
     "apps.usuarios",
     "apps.flota",
     "apps.maestros",
+    "apps.servicio",
 ]
 
 MIDDLEWARE = [
@@ -106,7 +107,8 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LOGIN_URL = "login"
-LOGIN_REDIRECT_URL = "flota:lista"
+# Tras entrar, cada rol va a su pantalla desde la portada (/).
+LOGIN_REDIRECT_URL = "inicio"
 LOGOUT_REDIRECT_URL = "login"
 
 # ---------------------------------------------------------------------------

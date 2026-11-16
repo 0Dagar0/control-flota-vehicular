@@ -113,8 +113,9 @@ Login, logout, permisos por rol, plantilla base de la interfaz.
 ### v0.4 — Maestros *(completada)*
 CRUD de vehículos, conductores, usuarios y plantillas. Alta de administradores con correo y Telegram.
 
-### v0.5 — Servicio
-Inicio (km + ruta) y cierre (km + novedad), con todas sus reglas.
+### v0.5 — Servicio *(completada)*
+Inicio (km + ruta) y cierre (km + novedad), con todas sus reglas. Incluye la asignación de vehículo
+con historial (`Asignacion`), que hace el administrador o el superadministrador.
 
 ### v0.6 — Inspección rápida
 Plantilla, ítems, formulario móvil, fotos comprimidas, PIN de confirmación, detección de inspecciones sospechosas.
@@ -304,17 +305,19 @@ permisos validados en el servidor, bloqueo por intentos fallidos (v1.1), HTTPS e
 - **Encargo 02 entregado al agente de diseño** con plan de 4 días (16 al 19/11/2026): galería de
   fotos, documentos y visor, conductores y baja, y novedades/vehículos/factura.
 
-### Estado al 2026-11-15 (v0.4)
+### Estado al 2026-11-15 (v0.5)
 
-- **v0.4 completada:** app `apps.maestros` con los formularios de `/maestros/`: alta y edición de
-  vehículos, alta y edición de conductores (crea también su usuario), baja de conductor con fecha y
-  motivo (R20) y alta/edición de administradores con correo y Telegram.
-- **Rutas alineadas con el contrato:** `/vehiculos/`, `/vehiculos/<placa>/`, `/documentos/`,
-  `/conductores/` (solo lectura para el administrador) y `/maestros/...` (solo superadministrador).
-- **58 pruebas** pasan, `ruff` limpio, sin migraciones pendientes (la app `maestros` no tiene
-  modelos propios).
-- **Siguiente:** v0.5 (servicio del conductor: inicio y cierre con km, ruta y novedad), después de
-  integrar los Días 1 y 2 del encargo 02.
+- **v0.5 completada:** el conductor ya tiene pantalla propia en `/conductor/` («Mi servicio»), inicia
+  con kilometraje y ruta en `/servicio/iniciar/` y cierra en `/servicio/<id>/cerrar/` con km final y
+  novedad opcional («sin novedad» por defecto). El cierre siempre se permite; el bloqueo por
+  documento vencido (R11) o licencia vencida (R21) se evalúa al iniciar.
+- **Asignación con historial:** modelo `Asignacion` (vehículo, conductor, fecha de inicio y fin,
+  motivo y quién la creó). Solo el administrador o el superadministrador asigna desde la lista de
+  conductores; el conductor no puede asignarse ni cambiarse de vehículo.
+- **La inspección rápida todavía no bloquea:** llega en la v0.6 como paso obligatorio.
+- **78 pruebas** pasan, `ruff` limpio, sin migraciones pendientes (`flota.0005`).
+- **Siguiente:** integrar los Días 1 y 2 del encargo 02 (galería de 6 fotos y visor de soportes) y
+  después la v0.6 (inspección rápida).
 
 ---
 

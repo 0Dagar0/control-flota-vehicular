@@ -18,7 +18,13 @@ from apps.flota.models import Conductor, Vehiculo
 from apps.flota.views import AccesoFlotaMixin
 from apps.usuarios.models import Usuario
 
-from .forms import BajaConductorForm, ConductorCompletoForm, UsuarioForm, VehiculoForm
+from .forms import (
+    AsignarVehiculoForm,
+    BajaConductorForm,
+    ConductorCompletoForm,
+    UsuarioForm,
+    VehiculoForm,
+)
 
 
 class SoloSuperadminMixin(LoginRequiredMixin):
@@ -98,14 +104,16 @@ class ConductorListaView(AccesoFlotaMixin, ListView):
     context_object_name = "conductores"
 
     def get_queryset(self):
-        return Conductor.objects.select_related("usuario").order_by(
-            "-activo", "usuario__first_name", "usuario__last_name"
-        )
+        return Conductor.objects.select_related("usuario").prefetch_related(
+            "asignaciones__vehiculo"
+        ).order_by("-activo", "usuario__first_name", "usuario__last_name")
 
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
         contexto["seccion"] = "conductores"
         contexto["puede_editar"] = self.request.user.es_superadmin
+        # Asignar vehículo lo puede hacer el administrador y el superadministrador.
+        contexto["puede_asignar"] = self.request.user.es_admin
         return contexto
 
 
@@ -165,6 +173,64 @@ class ConductorEditarView(SoloSuperadminMixin, FormView):
     def form_valid(self, form):
         conductor = form.save()
         messages.success(self.request, f"Conductor {conductor} actualizado.")
+        return redirect("conductores")
+
+
+class AsignarVehiculoView(AccesoFlotaMixin, FormView):
+    """Asigna vehículo a un conductor. Lo puede hacer el admin o el superadmin.
+
+    Es la única forma de que un conductor tenga vehículo: él no se asigna nada.
+    """
+
+    form_class = AsignarVehiculoForm
+    template_name = "maestros/asignar_vehiculo.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        # Un conductor dado de baja no puede recibir un vehículo nuevo.
+        if request.user.is_authenticated and not self.get_conductor().activo:
+            messages.error(
+                request, "Ese conductor está dado de baja: no puede recibir vehículo."
+            )
+            return redirect("conductores")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_conductor(self):
+        return get_object_or_404(
+            Conductor.objects.select_related("usuario"), pk=self.kwargs["pk"]
+        )
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["conductor"] = self.get_conductor()
+        return kwargs
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        conductor = self.get_conductor()
+        actual = conductor.vehiculo_actual
+        contexto.update(
+            {
+                "titulo": f"Asignar vehículo a {conductor}",
+                "subtitulo": (
+                    f"Hoy tiene {actual.placa}. Al cambiarlo se cierra la asignación "
+                    "anterior con la fecha que indiques."
+                    if actual
+                    else "Todavía no tiene vehículo asignado."
+                ),
+                "boton": "Guardar asignación",
+                "volver": reverse("conductores"),
+                "seccion": "conductores",
+                "historial": conductor.asignaciones.select_related("vehiculo")[:5],
+            }
+        )
+        return contexto
+
+    def form_valid(self, form):
+        asignacion = form.save(usuario=self.request.user)
+        messages.success(
+            self.request,
+            f"{asignacion.conductor} quedó con el vehículo {asignacion.vehiculo.placa}.",
+        )
         return redirect("conductores")
 
 

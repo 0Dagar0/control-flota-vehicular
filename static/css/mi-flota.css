@@ -245,6 +245,7 @@ td.numero { text-align: right; font-variant-numeric: tabular-nums; }
 }
 .formulario .ancho { grid-column: 1 / -1; }
 .formulario .campo { display: flex; flex-direction: column; gap: 6px; }
+.formulario .campo-check { flex-direction: row; align-items: center; gap: 10px; }
 .formulario .campo label { margin-bottom: 0; }
 .formulario select,
 .formulario textarea,
@@ -279,6 +280,56 @@ td.numero { text-align: right; font-variant-numeric: tabular-nums; }
 .enlace { color: var(--verde-oscuro); font-weight: 700; }
 .enlace:hover { text-decoration: underline; }
 .enlace-rojo { color: #a02020; }
+
+/* ---------- Servicio del conductor ---------- */
+.boton-grande {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 24px;
+  font-size: 16px;
+}
+.resumen {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 14px;
+}
+.resumen div span {
+  display: block;
+  font-size: 11px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: var(--gris);
+}
+.resumen div strong { font-size: 17px; }
+.aviso-bloqueo {
+  border: 1px solid rgba(217, 56, 56, 0.4);
+  background: rgba(217, 56, 56, 0.08);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+  font-size: 14px;
+}
+.campo-check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  grid-column: 1 / -1;
+}
+.campo-check input {
+  width: 22px;
+  height: 22px;
+  margin: 0;
+}
+.campo-check label { margin: 0; font-size: 15px; }
+.novedad {
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: #fffdf7;
+}
+.novedad summary { cursor: pointer; font-weight: 700; }
 
 /* ---------- Móvil ---------- */
 @media (max-width: 900px) {

@@ -83,15 +83,16 @@ def test_portada_del_admin_va_a_la_flota(client, admin):
     assert respuesta["Location"] == reverse("flota:lista")
 
 
-def test_portada_del_conductor_avisa_que_llega_en_v05(client, conductor):
+def test_portada_del_conductor_va_a_mi_servicio(client, conductor):
+    """v0.5: el conductor ya tiene pantalla propia."""
     client.force_login(conductor.usuario)
     respuesta = client.get(reverse("inicio"))
-    assert respuesta.status_code == 200
-    assert "v0.5" in respuesta.content.decode()
+    assert respuesta.status_code == 302
+    assert respuesta["Location"] == reverse("mi_servicio")
 
 
 def test_conductor_no_entra(client, conductor):
-    """Un conductor no puede ver la flota: su pantalla llega en v0.5."""
+    """Un conductor no puede ver la flota: solo ve su propio servicio."""
     client.force_login(conductor.usuario)
     respuesta = client.get(reverse("flota:lista"))
     assert respuesta.status_code == 403

@@ -11,7 +11,7 @@ from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.utils import timezone
 
-from apps.flota.models import Conductor, Vehiculo
+from apps.flota.models import Asignacion, Conductor, Vehiculo
 from apps.usuarios.models import Usuario
 
 
@@ -276,6 +276,83 @@ class UsuarioForm(forms.Form):
             usuario.set_password(datos["password1"])
             usuario.save(update_fields=["password"])
         return usuario
+
+
+class AsignarVehiculoForm(forms.Form):
+    """Asignación de vehículo a un conductor (solo admin o superadmin).
+
+    Un conductor tiene un vehículo a la vez. Al cambiarlo se cierra la
+    asignación anterior con fecha y motivo: el historial no se borra (R18).
+    """
+
+    vehiculo = forms.ModelChoiceField(
+        label="vehículo", queryset=Vehiculo.objects.none(), empty_label="Selecciona un vehículo"
+    )
+    fecha_inicio = forms.DateField(
+        label="desde qué fecha",
+        widget=forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
+        initial=timezone.localdate,
+    )
+    motivo = forms.CharField(
+        label="motivo del cambio",
+        max_length=200,
+        required=False,
+        help_text="Opcional. Queda guardado cuando se reemplaza una asignación anterior.",
+    )
+
+    def __init__(self, *args, conductor=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.conductor = conductor
+        ocupados = Asignacion.objects.filter(fecha_fin__isnull=True).exclude(
+            conductor=conductor
+        )
+        self.fields["vehiculo"].queryset = (
+            Vehiculo.objects.filter(activo=True)
+            .exclude(pk__in=ocupados.values_list("vehiculo_id", flat=True))
+            .order_by("placa")
+        )
+        actual = Asignacion.activa_de(conductor) if conductor else None
+        if actual:
+            self.fields["vehiculo"].initial = actual.vehiculo
+            self.fields["fecha_inicio"].initial = actual.fecha_inicio
+
+    def clean(self):
+        datos = super().clean()
+        actual = Asignacion.activa_de(self.conductor) if self.conductor else None
+        fecha = datos.get("fecha_inicio")
+        if actual and fecha and fecha < actual.fecha_inicio:
+            self.add_error(
+                "fecha_inicio",
+                f"La asignación actual empezó el {actual.fecha_inicio:%d/%m/%Y}; "
+                "la nueva no puede empezar antes.",
+            )
+        return datos
+
+    @transaction.atomic
+    def save(self, usuario=None) -> Asignacion:
+        conductor = self.conductor
+        elegido = self.cleaned_data["vehiculo"]
+        fecha = self.cleaned_data["fecha_inicio"]
+        motivo = self.cleaned_data["motivo"].strip() or "Cambio de vehículo"
+
+        actual = Asignacion.activa_de(conductor)
+        if actual and actual.vehiculo_id == elegido.pk:
+            return actual
+        if actual:
+            actual.fecha_fin = fecha
+            actual.motivo_fin = motivo
+            actual.full_clean()
+            actual.save()
+
+        nueva = Asignacion(
+            vehiculo=elegido,
+            conductor=conductor,
+            fecha_inicio=fecha,
+            creado_por=usuario,
+        )
+        nueva.full_clean()
+        nueva.save()
+        return nueva
 
 
 class BajaConductorForm(forms.Form):

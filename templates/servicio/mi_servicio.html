@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% block titulo %}Mi servicio{% endblock %}
+
+{% block contenido %}
+<div class="cabecera">
+  <div>
+    <h1>Mi servicio</h1>
+    <p>{{ user.get_full_name|default:user.documento }} · {{ hoy|date:"d/m/Y" }}</p>
+  </div>
+  <form method="post" action="{% url 'logout' %}">
+    {% csrf_token %}
+    <button type="submit" class="boton boton-secundario">Cerrar sesión</button>
+  </form>
+</div>
+
+{% if conductor is None %}
+  <div class="aviso aviso-error">
+    Tu usuario todavía no tiene ficha de conductor. Pídele al administrador que la cree.
+  </div>
+
+{% elif asignacion is None %}
+  <div class="tarjeta">
+    <div class="vacio-panel">
+      No tienes vehículo asignado. El administrador es quien asigna el vehículo:
+      cuando lo haga, aquí verás la placa y podrás iniciar servicio.
+    </div>
+  </div>
+
+{% else %}
+  <div class="tarjeta">
+    <h2>Vehículo asignado</h2>
+    <div class="resumen">
+      <div>
+        <span>Placa</span>
+        <strong>{{ vehiculo.placa }}</strong>
+      </div>
+      <div>
+        <span>Marca y referencia</span>
+        <strong>{{ vehiculo.marca }} {{ vehiculo.referencia }}</strong>
+      </div>
+      <div>
+        <span>Kilometraje</span>
+        <strong>{{ vehiculo.km_actual }} km</strong>
+      </div>
+      <div>
+        <span>Estado</span>
+        <strong>{{ vehiculo.estado_etiqueta }}</strong>
+      </div>
+      <div>
+        <span>Próximo vencimiento</span>
+        <strong>
+          {% if proximo_documento %}
+            {{ proximo_documento.get_tipo_display }} · {{ proximo_documento.vencimiento|date:"d/m/Y" }}
+          {% else %}
+            Sin documentos
+          {% endif %}
+        </strong>
+      </div>
+    </div>
+  </div>
+
+  {% if documentos_vencidos %}
+    <div class="aviso-bloqueo">
+      <strong>Vehículo bloqueado por documento vencido.</strong>
+      No puedes iniciar servicio hasta que se renueve:
+      {% for documento in documentos_vencidos %}
+        {{ documento.get_tipo_display }} (venció el {{ documento.vencimiento|date:"d/m/Y" }}){% if not forloop.last %}, {% endif %}
+      {% endfor %}
+    </div>
+  {% endif %}
+
+  {% if not conductor.licencia_vigente %}
+    <div class="aviso-bloqueo">
+      <strong>Tu licencia está vencida.</strong>
+      Vence el {{ conductor.licencia_vencimiento|date:"d/m/Y" }}: no puedes iniciar servicio.
+    </div>
+  {% endif %}
+
+  <div class="tarjeta">
+    <h2>Servicio de hoy</h2>
+    {% if servicio %}
+      <div class="resumen">
+        <div>
+          <span>Ruta u operación</span>
+          <strong>{{ servicio.ruta }}</strong>
+        </div>
+        <div>
+          <span>Hora de inicio</span>
+          <strong>{{ servicio.iniciado_en|date:"H:i" }}</strong>
+        </div>
+        <div>
+          <span>Kilometraje inicial</span>
+          <strong>{{ servicio.km_inicial }} km</strong>
+        </div>
+      </div>
+      <div class="acciones" style="margin-top:16px">
+        <a class="boton boton-grande" href="{% url 'servicio:cerrar' servicio.pk %}">Cerrar servicio</a>
+      </div>
+    {% elif puede_iniciar %}
+      <p style="margin-bottom:16px">
+        Todo en orden: puedes iniciar el recorrido de hoy.
+      </p>
+      <a class="boton boton-grande" href="{% url 'servicio:iniciar' %}">Iniciar servicio</a>
+    {% else %}
+      <div class="vacio-panel">
+        {{ motivo_bloqueo|default:"No puedes iniciar servicio en este momento." }}
+      </div>
+    {% endif %}
+  </div>
+
+  <div class="tarjeta">
+    <h2>Últimos servicios</h2>
+    {% if servicios_recientes %}
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Vehículo</th>
+            <th>Ruta</th>
+            <th>Km recorridos</th>
+            <th>Novedad</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for anterior in servicios_recientes %}
+            <tr>
+              <td>{{ anterior.iniciado_en|date:"d/m/Y H:i" }}</td>
+              <td>{{ anterior.vehiculo.placa }}</td>
+              <td>{{ anterior.ruta }}</td>
+              <td class="numero">
+                {% if anterior.km_recorridos is not None %}{{ anterior.km_recorridos }} km{% else %}—{% endif %}
+              </td>
+              <td>
+                {% if anterior.cerrado_en is None %}
+                  <span class="insignia insignia-amarilla">En curso</span>
+                {% elif anterior.sin_novedad %}
+                  <span class="insignia insignia-verde">Sin novedad</span>
+                {% else %}
+                  <span class="insignia insignia-roja">Con novedad</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <div class="vacio-panel">Todavía no has registrado servicios.</div>
+    {% endif %}
+  </div>
+{% endif %}
+{% endblock %}

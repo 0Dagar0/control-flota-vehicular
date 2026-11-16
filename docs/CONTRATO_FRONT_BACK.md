@@ -74,10 +74,12 @@ La capa A es la principal. La capa B existe para que la app funcione sin interne
 
 ## 5. Capa A — Rutas web
 
-> **Estado de implementación (2026-11-15):** ya existen `/cuenta/login/`, `/`,
-> `/vehiculos/`, `/vehiculos/<placa>/`, `/documentos/`, `/conductores/` y las rutas
-> `/maestros/...` (§5.3). El resto de esta sección está acordado pero todavía no existe en el
-> código; cada versión del documento maestro indica cuándo se implementa.
+> **Estado de implementación (2026-11-15):** ya existen `/cuenta/login/`, `/`, `/vehiculos/`,
+> `/vehiculos/<placa>/`, `/documentos/`, `/conductores/`, `/maestros/...` (§5.3) y las rutas del
+> conductor `/conductor/`, `/servicio/iniciar/` y `/servicio/<id>/cerrar/` (§5.1). Hasta la v0.6,
+> `/servicio/iniciar/` redirige a «Mi servicio» en lugar de a la inspección rápida, y el cierre usa
+> `km_final` y `sin_novedad` como nombres de campo. El resto de esta sección está acordado pero
+> todavía no existe en el código; cada versión del documento maestro indica cuándo se implementa.
 
 ### 5.1 Conductor
 

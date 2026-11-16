@@ -1,0 +1,36 @@
+{% extends "formulario.html" %}
+
+{# La vista de asignación añade el historial: la asignación nunca se borra (R18). #}
+{% block extra %}
+{% if historial %}
+  <div class="tarjeta">
+    <h2>Historial de asignaciones</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Vehículo</th>
+          <th>Desde</th>
+          <th>Hasta</th>
+          <th>Motivo del cambio</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for asignacion in historial %}
+          <tr>
+            <td><strong>{{ asignacion.vehiculo.placa }}</strong></td>
+            <td>{{ asignacion.fecha_inicio|date:"d/m/Y" }}</td>
+            <td>
+              {% if asignacion.fecha_fin %}
+                {{ asignacion.fecha_fin|date:"d/m/Y" }}
+              {% else %}
+                <span class="insignia insignia-verde">Actual</span>
+              {% endif %}
+            </td>
+            <td>{{ asignacion.motivo_fin|default:"—" }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endif %}
+{% endblock %}

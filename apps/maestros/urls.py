@@ -24,6 +24,11 @@ urlpatterns = [
         views.ConductorBajaView.as_view(),
         name="conductor_baja",
     ),
+    path(
+        "conductores/<int:pk>/asignar/",
+        views.AsignarVehiculoView.as_view(),
+        name="conductor_asignar",
+    ),
     path("usuarios/", views.UsuarioListaView.as_view(), name="usuario_lista"),
     path("usuarios/nuevo/", views.UsuarioCrearView.as_view(), name="usuario_nuevo"),
     path(
