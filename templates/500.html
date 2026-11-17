@@ -1,0 +1,13 @@
+{% extends "error_base.html" %}
+{% block codigo %}500{% endblock %}
+{% block icono %}⚙️{% endblock %}
+{% block numero %}500{% endblock %}
+{% block titulo %}Error del servidor{% endblock %}
+{% block mensaje %}Ocurrió un problema inesperado al atender tu solicitud. Tus datos no se han perdido.{% endblock %}
+{% block detalle %}
+  <p class="error-nota">
+    Intenta de nuevo en unos minutos. Si el problema continúa, avisa al administrador
+    indicando la hora y la pantalla donde ocurrió.
+  </p>
+{% endblock %}
+{% block pie %}500 · Error del servidor · Mi Flota{% endblock %}

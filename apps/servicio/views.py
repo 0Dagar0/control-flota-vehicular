@@ -79,13 +79,20 @@ class MiServicioView(SoloConductorMixin, TemplateView):
                 and conductor.licencia_vigente
                 and not vehiculo.documentos_vencidos.exists()
             )
-            if not conductor.licencia_vigente:
+            if servicio:
                 contexto["motivo_bloqueo"] = (
-                    "Tu licencia de conducción está vencida: no puedes iniciar servicio."
+                    "Ya tienes un servicio en curso: ciérralo antes de iniciar otro."
+                )
+            elif not conductor.licencia_vigente:
+                contexto["motivo_bloqueo"] = (
+                    "Tu licencia de conducción venció el "
+                    f"{conductor.licencia_vencimiento:%d/%m/%Y}: no puedes iniciar servicio."
                 )
             elif vehiculo.documentos_vencidos.exists():
+                vencido = vehiculo.documentos_vencidos.first()
                 contexto["motivo_bloqueo"] = (
-                    "El vehículo tiene un documento vencido: no puede salir hasta renovarlo."
+                    f"{vencido.get_tipo_display()} venció el "
+                    f"{vencido.vencimiento:%d/%m/%Y}: el vehículo no puede salir."
                 )
         return contexto
 

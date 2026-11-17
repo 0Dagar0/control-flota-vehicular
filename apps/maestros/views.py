@@ -10,9 +10,10 @@ Permisos según el contrato (§5.2 y §5.3):
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
+from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
-from django.views.generic import CreateView, FormView, ListView, UpdateView
+from django.views.generic import CreateView, DetailView, FormView, ListView, UpdateView
 
 from apps.flota.models import Conductor, Vehiculo
 from apps.flota.views import AccesoFlotaMixin
@@ -273,6 +274,41 @@ class ConductorBajaView(SoloSuperadminMixin, FormView):
         return redirect("conductores")
 
 
+class ConductorHistorialView(AccesoFlotaMixin, DetailView):
+    """Historial consultable del conductor: asignaciones, servicios y documentos.
+
+    La baja (R20) no borra nada; por eso esta pantalla sigue mostrando el
+    historial completo de un conductor inactivo. Las novedades como modelo
+    propio llegan en v0.7; hoy solo se puede ver la novedad del cierre.
+    """
+
+    model = Conductor
+    template_name = "maestros/conductor_historial.html"
+    context_object_name = "conductor"
+
+    def get_queryset(self):
+        return Conductor.objects.select_related("usuario")
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        conductor = self.object
+        servicios = conductor.servicios.select_related("vehiculo").order_by("-iniciado_en")
+        cerrados = servicios.filter(cerrado_en__isnull=False)
+
+        contexto["seccion"] = "conductores"
+        contexto["asignaciones"] = conductor.asignaciones.select_related("vehiculo", "creado_por")
+        contexto["servicios"] = servicios[:20]
+        contexto["documentos"] = conductor.documentos.all()
+        contexto["ultima_asignacion"] = conductor.asignaciones.select_related("vehiculo").first()
+        contexto["resumen"] = {
+            "servicios": cerrados.count(),
+            "km": sum(servicio.km_recorridos or 0 for servicio in cerrados),
+            "con_novedad": cerrados.filter(sin_novedad=False).count(),
+            "en_curso": servicios.filter(cerrado_en__isnull=True).count(),
+        }
+        return contexto
+
+
 # ---------------------------------------------------------------------------
 # Usuarios administradores
 # ---------------------------------------------------------------------------
@@ -282,11 +318,39 @@ class UsuarioListaView(SoloSuperadminMixin, ListView):
     context_object_name = "usuarios"
 
     def get_queryset(self):
-        return Usuario.objects.order_by("-is_active", "first_name", "last_name")
+        consulta = Usuario.objects.all()
+        buscar = self.request.GET.get("buscar", "").strip()
+        if buscar:
+            consulta = consulta.filter(
+                Q(first_name__icontains=buscar)
+                | Q(last_name__icontains=buscar)
+                | Q(documento__icontains=buscar)
+                | Q(email__icontains=buscar)
+            )
+        rol = self.request.GET.get("rol", "")
+        if rol in Usuario.Rol.values:
+            consulta = consulta.filter(rol=rol)
+        estado = self.request.GET.get("estado", "")
+        if estado in ("activo", "inactivo"):
+            consulta = consulta.filter(is_active=estado == "activo")
+        return consulta.order_by("rol", "first_name", "last_name")
 
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
+        todos = Usuario.objects.all()
         contexto["seccion"] = "usuarios"
+        contexto["roles"] = Usuario.Rol.choices
+        # Los indicadores se calculan sobre todos, no sobre la lista filtrada.
+        contexto["resumen"] = {
+            "total": todos.count(),
+            "activos": todos.filter(is_active=True).count(),
+            "inactivos": todos.filter(is_active=False).count(),
+            "sin_telegram": todos.filter(telegram_chat_id="").count(),
+            "superadmins": todos.filter(rol=Usuario.Rol.SUPERADMIN).count(),
+            "conductores": todos.filter(rol=Usuario.Rol.CONDUCTOR).count(),
+            "admins": todos.filter(rol=Usuario.Rol.ADMIN).count(),
+        }
+        contexto["filtros"] = self.request.GET
         return contexto
 
 

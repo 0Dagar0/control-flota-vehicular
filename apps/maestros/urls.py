@@ -15,6 +15,11 @@ urlpatterns = [
     ),
     path("conductores/nuevo/", views.ConductorCrearView.as_view(), name="conductor_nuevo"),
     path(
+        "conductores/<int:pk>/historial/",
+        views.ConductorHistorialView.as_view(),
+        name="conductor_historial",
+    ),
+    path(
         "conductores/<int:pk>/editar/",
         views.ConductorEditarView.as_view(),
         name="conductor_editar",

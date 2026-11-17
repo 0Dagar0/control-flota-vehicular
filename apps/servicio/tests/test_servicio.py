@@ -371,3 +371,34 @@ def test_el_servicio_se_puede_cerrar_aunque_el_vehiculo_quede_bloqueado(
     assert Servicio.objects.get(conductor=conductor).cerrado_en is not None
 
 
+# ---------------------------------------------------------------------------
+# Pantalla «Mi servicio» (integración del encargo 03)
+# ---------------------------------------------------------------------------
+def test_mi_servicio_sin_asignacion_muestra_el_estado_y_la_ayuda(client, conductor):
+    client.force_login(conductor.usuario)
+    contenido = client.get(reverse("mi_servicio")).content.decode()
+
+    assert "Todavía no tienes vehículo asignado" in contenido
+    assert "Sin asignación" in contenido
+    assert "¿Necesitas ayuda?" in contenido
+    assert "No puedes asignarte un vehículo por tu cuenta" in contenido
+
+
+def test_mi_servicio_bloqueado_muestra_motivo_fecha_y_boton_deshabilitado(
+    client, conductor, asignacion
+):
+    ayer = timezone.localdate() - timedelta(days=1)
+    Documento.objects.create(
+        tipo=Documento.Tipo.SOAT,
+        vehiculo=asignacion.vehiculo,
+        vencimiento=ayer,
+    )
+    client.force_login(conductor.usuario)
+    contenido = client.get(reverse("mi_servicio")).content.decode()
+
+    assert "No puedes iniciar servicio" in contenido
+    assert ayer.strftime("%d/%m/%Y") in contenido
+    assert 'disabled aria-disabled="true"' in contenido
+    assert "el cierre siempre está permitido" in contenido
+
+

@@ -30,7 +30,10 @@
       <tbody>
         {% for conductor in conductores %}
           <tr>
-            <td><strong>{{ conductor }}</strong></td>
+            <td>
+              <strong>{{ conductor }}</strong><br>
+              <a class="enlace" href="{% url 'maestros:conductor_historial' conductor.pk %}">Ver historial</a>
+            </td>
             <td>{{ conductor.usuario.documento }}</td>
             <td>{{ conductor.usuario.telefono|default:"—" }}</td>
             <td>{{ conductor.get_licencia_categoria_display }}</td>

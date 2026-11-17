@@ -1,0 +1,8 @@
+{% extends "error_base.html" %}
+{% block codigo %}404{% endblock %}
+{% block icono %}🔍{% endblock %}
+{% block numero %}404{% endblock %}
+{% block titulo %}La página no existe{% endblock %}
+{% block mensaje %}La dirección que abriste no corresponde a ninguna pantalla del sistema. Puede estar mal escrita o el registro se movió.{% endblock %}
+{% block accion_extra %}<a class="boton boton-secundario" href="{% url 'flota:lista' %}">Ver la flota</a>{% endblock %}
+{% block pie %}404 · No encontrado · Mi Flota{% endblock %}

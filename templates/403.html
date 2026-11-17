@@ -1,0 +1,13 @@
+{% extends "error_base.html" %}
+{% block codigo %}403{% endblock %}
+{% block icono %}🔒{% endblock %}
+{% block numero %}403{% endblock %}
+{% block titulo %}No tienes permiso{% endblock %}
+{% block mensaje %}Tu rol no puede entrar a esta pantalla ni realizar esta acción.{% endblock %}
+{% block detalle %}
+  <p class="error-nota">
+    Si crees que es un error, pídele al administrador que revise tu rol. Tu sesión sigue activa.
+  </p>
+{% endblock %}
+{% block accion_extra %}<a class="boton boton-secundario" href="{% url 'flota:lista' %}">Ver la flota</a>{% endblock %}
+{% block pie %}403 · Sin permiso · Mi Flota{% endblock %}

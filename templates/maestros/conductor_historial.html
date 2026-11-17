@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% block titulo %}Historial del conductor{% endblock %}
+
+{% block contenido %}
+<div class="cabecera">
+  <div>
+    <h1>Historial del conductor</h1>
+    <p>Asignaciones, servicios y documentos · nada se borra al dar de baja (R20).</p>
+  </div>
+  <a class="boton boton-secundario" href="{% url 'conductores' %}">← Volver a conductores</a>
+</div>
+
+<div class="tarjeta">
+  <h2>{{ conductor }}</h2>
+  <p class="texto-suave">
+    Cédula {{ conductor.usuario.documento }} ·
+    {% if conductor.usuario.telefono %}Teléfono {{ conductor.usuario.telefono }} ·{% endif %}
+    licencia {{ conductor.get_licencia_categoria_display }}
+  </p>
+  <div class="resumen">
+    <div><span>Vencimiento de licencia</span><strong>{{ conductor.licencia_vencimiento|date:"d/m/Y" }}</strong></div>
+    <div><span>Contacto de emergencia</span><strong>{{ conductor.contacto_emergencia_nombre|default:"—" }}</strong></div>
+    <div><span>Teléfono de emergencia</span><strong>{{ conductor.contacto_emergencia_telefono|default:"—" }}</strong></div>
+    <div><span>Estado</span><strong>{{ conductor.estado|title }}</strong></div>
+  </div>
+  {% if not conductor.activo %}
+    <div class="aviso aviso-error" style="margin-top:14px">
+      Conductor dado de baja el {{ conductor.fecha_baja|date:"d/m/Y" }}.
+      Motivo: {{ conductor.motivo_baja|default:"no registrado" }}.
+      Su historial se conserva y sigue consultable.
+    </div>
+  {% elif not conductor.licencia_vigente %}
+    <div class="aviso aviso-error" style="margin-top:14px">
+      No habilitado (licencia): no puede iniciar servicio hasta renovar su licencia (R21).
+    </div>
+  {% endif %}
+</div>
+
+<div class="indicadores">
+  <div class="tarjeta indicador">
+    <span>Servicios cerrados</span>
+    <strong>{{ resumen.servicios }}</strong>
+    <p>{{ resumen.en_curso }} en curso actualmente.</p>
+  </div>
+  <div class="tarjeta indicador">
+    <span>Km recorridos</span>
+    <strong>{{ resumen.km }}</strong>
+    <p>Suma de los kilómetros de cada servicio cerrado.</p>
+  </div>
+  <div class="tarjeta indicador">
+    <span>Cierres con novedad</span>
+    <strong>{{ resumen.con_novedad }}</strong>
+    <p>Quedan registrados en la hoja de vida del vehículo.</p>
+  </div>
+  <div class="tarjeta indicador">
+    <span>Última asignación</span>
+    <strong class="valor-pequeno">
+      {% if ultima_asignacion %}{{ ultima_asignacion.vehiculo.placa }}{% else %}—{% endif %}
+    </strong>
+    <p>{% if ultima_asignacion %}Desde el {{ ultima_asignacion.fecha_inicio|date:"d/m/Y" }}{% else %}Nunca ha tenido vehículo{% endif %}.</p>
+  </div>
+</div>
+
+<div class="tarjeta">
+  <h2>1. Historial de asignaciones</h2>
+  {% if asignaciones %}
+    <div class="tabla-tarjetas">
+      <table>
+        <thead>
+          <tr><th>Vehículo</th><th>Desde</th><th>Hasta</th><th>Motivo del cambio</th><th>Registrada por</th></tr>
+        </thead>
+        <tbody>
+          {% for asignacion in asignaciones %}
+            <tr>
+              <td data-label="Vehículo">
+                <strong>{{ asignacion.vehiculo.placa }}</strong><br>
+                <span class="texto-suave">{{ asignacion.vehiculo.marca }} {{ asignacion.vehiculo.referencia }}</span>
+              </td>
+              <td data-label="Desde">{{ asignacion.fecha_inicio|date:"d/m/Y" }}</td>
+              <td data-label="Hasta">
+                {% if asignacion.activa %}Asignación actual{% else %}{{ asignacion.fecha_fin|date:"d/m/Y" }}{% endif %}
+              </td>
+              <td data-label="Motivo del cambio">{{ asignacion.motivo_fin|default:"—" }}</td>
+              <td data-label="Registrada por">{{ asignacion.creado_por|default:"—" }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="vacio-panel">Este conductor nunca ha tenido un vehículo asignado.</div>
+  {% endif %}
+</div>
+
+<div class="tarjeta">
+  <h2>2. Historial de servicios</h2>
+  {% if servicios %}
+    <div class="tabla-tarjetas">
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th><th>Vehículo</th><th>Ruta</th><th>Km inicial</th>
+            <th>Km final</th><th>Km recorridos</th><th>Cierre</th><th>Observación</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for servicio in servicios %}
+            <tr>
+              <td data-label="Fecha">{{ servicio.iniciado_en|date:"d/m/Y H:i" }}</td>
+              <td data-label="Vehículo">{{ servicio.vehiculo.placa }}</td>
+              <td data-label="Ruta">{{ servicio.ruta }}</td>
+              <td data-label="Km inicial">{{ servicio.km_inicial }}</td>
+              <td data-label="Km final">{{ servicio.km_final|default:"—" }}</td>
+              <td data-label="Km recorridos">
+                {% if servicio.km_recorridos is not None %}{{ servicio.km_recorridos }}{% else %}—{% endif %}
+              </td>
+              <td data-label="Cierre">
+                {% if servicio.cerrado_en is None %}
+                  <span class="insignia insignia-amarilla">En curso</span>
+                {% elif servicio.sin_novedad %}
+                  <span class="insignia insignia-verde">Sin novedad</span>
+                {% else %}
+                  <span class="insignia insignia-roja">Con novedad</span>
+                {% endif %}
+              </td>
+              <td data-label="Observación">{{ servicio.observacion_cierre|default:"—" }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="texto-suave">Se muestran los {{ servicios|length }} servicios más recientes.</p>
+  {% else %}
+    <div class="vacio-panel">Todavía no hay servicios iniciados ni cerrados para este conductor.</div>
+  {% endif %}
+</div>
+
+<div class="tarjeta">
+  <h2>3. Documentos del conductor</h2>
+  {% if documentos %}
+    <div class="tabla-tarjetas">
+      <table>
+        <thead>
+          <tr><th>Tipo</th><th>Entidad</th><th>Número</th><th>Vencimiento</th><th>Soporte</th></tr>
+        </thead>
+        <tbody>
+          {% for documento in documentos %}
+            <tr>
+              <td data-label="Tipo">{{ documento.get_tipo_display }}</td>
+              <td data-label="Entidad">{{ documento.entidad|default:"—" }}</td>
+              <td data-label="Número">{{ documento.numero|default:"—" }}</td>
+              <td data-label="Vencimiento">{{ documento.vencimiento|date:"d/m/Y" }}</td>
+              <td data-label="Soporte">
+                {% if documento.tiene_soporte %}
+                  <span class="insignia insignia-verde">Cargado</span>
+                {% else %}
+                  <span class="insignia insignia-amarilla">Pendiente</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="vacio-panel">No hay documentos del conductor registrados.</div>
+  {% endif %}
+  <p class="texto-suave">
+    Las novedades como registro propio se incorporarán en v0.7; hoy solo se reflejan
+    en el cierre del servicio.
+  </p>
+</div>
+{% endblock %}

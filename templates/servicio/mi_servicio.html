@@ -19,11 +19,19 @@
   </div>
 
 {% elif asignacion is None %}
+  <div class="tarjeta centro">
+    <div class="estado-ico" aria-hidden="true">🚚</div>
+    <h2>Todavía no tienes vehículo asignado</h2>
+    <p class="insignia insignia-amarilla">Sin asignación</p>
+    <p class="estado-texto">
+      El administrador debe asignarte un vehículo antes de que puedas iniciar servicio.
+      Cuando lo haga, aquí verás la placa, el kilometraje y el estado del documento.
+    </p>
+  </div>
+
   <div class="tarjeta">
-    <div class="vacio-panel">
-      No tienes vehículo asignado. El administrador es quien asigna el vehículo:
-      cuando lo haga, aquí verás la placa y podrás iniciar servicio.
-    </div>
+    <h2>¿Necesitas ayuda?</h2>
+    <p>Pide la asignación al administrador de la flota. No puedes asignarte un vehículo por tu cuenta.</p>
   </div>
 
 {% else %}
@@ -102,9 +110,17 @@
       </p>
       <a class="boton boton-grande" href="{% url 'servicio:iniciar' %}">Iniciar servicio</a>
     {% else %}
-      <div class="vacio-panel">
-        {{ motivo_bloqueo|default:"No puedes iniciar servicio en este momento." }}
+      <div class="aviso-bloqueo">
+        <strong>No puedes iniciar servicio.</strong>
+        {{ motivo_bloqueo|default:"Revisa la documentación del vehículo y tu licencia." }}
       </div>
+      {# El botón se deshabilita, no se oculta: así se entiende que la acción existe. #}
+      <button class="boton boton-grande" type="button" disabled aria-disabled="true">
+        Iniciar servicio
+      </button>
+      <p class="hint">
+        El bloqueo se evalúa al iniciar. Si ya tuvieras un servicio en curso, el cierre siempre está permitido.
+      </p>
     {% endif %}
   </div>
 

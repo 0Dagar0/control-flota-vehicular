@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block titulo %}Centro de alertas{% endblock %}
+
+{% block contenido %}
+<div class="cabecera">
+  <div>
+    <h1>Centro de alertas</h1>
+    <p>Todo lo que exige atención hoy: documentos, licencias, servicios abiertos, asignaciones y fotos.</p>
+  </div>
+  <a class="boton boton-secundario" href="{% url 'flota:lista' %}">Volver a la flota</a>
+</div>
+
+<div class="aviso">
+  <strong>{{ total_alertas }} alertas activas.</strong>
+  Cada hecho aparece una sola vez y lleva a la pantalla donde se resuelve.
+  Los umbrales son los del contrato §9.
+</div>
+
+{% for grupo in grupos %}
+  <section class="tarjeta alerta-grupo alerta-{{ grupo.clave }}">
+    <h2>{{ grupo.titulo }} <span class="insignia insignia-gris">{{ grupo.alertas|length }}</span></h2>
+    <p class="texto-suave">{{ grupo.descripcion }}</p>
+
+    {% if grupo.alertas %}
+      <div class="alerta-lista">
+        {% for alerta in grupo.alertas %}
+          <article class="alerta-item">
+            <span class="alerta-icono" aria-hidden="true">{{ alerta.icono }}</span>
+            <div class="alerta-cuerpo">
+              <div class="alerta-titulo">{{ alerta.titulo }}</div>
+              <p class="alerta-meta">{{ alerta.meta }}</p>
+              <p class="texto-suave">{{ alerta.descripcion }}</p>
+            </div>
+            <a class="boton boton-secundario" href="{{ alerta.url }}">{{ alerta.boton }}</a>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="vacio-panel">No hay alertas en este grupo.</div>
+    {% endif %}
+  </section>
+{% endfor %}
+
+<div class="tarjeta">
+  <h2>Cómo se calculan</h2>
+  <ul class="lista-reglas">
+    <li><b>Documentos:</b> vencidos (0 días) o por vencer en <b>7</b> y <b>3</b> días.</li>
+    <li><b>Servicios:</b> abiertos hace más de <b>12 horas</b> sin cerrar.</li>
+    <li><b>Licencias:</b> vencidas de conductores que no están dados de baja.</li>
+    <li><b>Asignaciones:</b> conductores activos sin vehículo asignado.</li>
+    <li><b>Fotos:</b> vehículos activos sin ninguna de las seis fotos de referencia.</li>
+  </ul>
+  <p class="texto-suave">
+    Los mantenimientos y las novedades críticas se incorporarán cuando existan sus modelos
+    (v0.6 y v0.7). Esta pantalla solo muestra el estado; no envía notificaciones.
+  </p>
+</div>
+
+{% if total_alertas == 0 %}
+  <div class="tarjeta centro">
+    <div class="estado-ico" aria-hidden="true">✅</div>
+    <h2>Nada pendiente hoy</h2>
+    <p class="estado-texto">
+      Revisamos documentos, licencias, servicios, asignaciones y fotos: todo está al día.
+    </p>
+  </div>
+{% endif %}
+{% endblock %}

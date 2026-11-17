@@ -7,6 +7,8 @@
   <link rel="stylesheet" href="{% static 'css/mi-flota.css' %}">
 </head>
 <body>
+{# El menú móvil es solo CSS: este checkbox se oculta y se controla con una etiqueta. #}
+<input type="checkbox" id="menu-toggle" class="menu-check" aria-label="Abrir o cerrar el menú">
 <div class="app">
   <aside class="sidebar">
     <div class="brand">
@@ -18,22 +20,25 @@
       </div>
     </div>
 
+    <label for="menu-toggle" class="menu-cerrar">✕ Cerrar menú</label>
+
     <nav class="menu">
-      <a href="/" {% if seccion == "panel" %}class="activo"{% endif %}>🏠 Panel</a>
+      <a href="/" {% if seccion == "panel" %}class="activo"{% endif %}>🏠 <span class="menu-texto">Panel</span></a>
       {% if user.es_admin %}
-        <span class="pendiente" title="Disponible en v0.7">⚠️ Novedades</span>
-        <a href="{% url 'flota:lista' %}" {% if seccion == "vehiculos" %}class="activo"{% endif %}>🚛 Vehículos</a>
-        <span class="pendiente" title="Se abre desde cada vehículo">📋 Hoja de vida</span>
-        <a href="{% url 'documentos:lista' %}" {% if seccion == "documentos" %}class="activo"{% endif %}>📄 Documentos</a>
-        <a href="{% url 'conductores' %}" {% if seccion == "conductores" %}class="activo"{% endif %}>👤 Conductores</a>
-        <span class="pendiente" title="Disponible en v1.1">🔧 Mantenimientos</span>
-        <span class="pendiente" title="Disponible en v0.10">📊 Reportes</span>
+        <a href="{% url 'alertas' %}" {% if seccion == "alertas" %}class="activo"{% endif %}>🔔 <span class="menu-texto">Alertas</span></a>
+        <span class="pendiente" title="Disponible en v0.7">⚠️ <span class="menu-texto">Novedades</span></span>
+        <a href="{% url 'flota:lista' %}" {% if seccion == "vehiculos" %}class="activo"{% endif %}>🚛 <span class="menu-texto">Vehículos</span></a>
+        <span class="pendiente" title="Se abre desde cada vehículo">📋 <span class="menu-texto">Hoja de vida</span></span>
+        <a href="{% url 'documentos:lista' %}" {% if seccion == "documentos" %}class="activo"{% endif %}>📄 <span class="menu-texto">Documentos</span></a>
+        <a href="{% url 'conductores' %}" {% if seccion == "conductores" %}class="activo"{% endif %}>👤 <span class="menu-texto">Conductores</span></a>
+        <span class="pendiente" title="Disponible en v1.1">🔧 <span class="menu-texto">Mantenimientos</span></span>
+        <span class="pendiente" title="Disponible en v0.10">📊 <span class="menu-texto">Reportes</span></span>
         {% if user.es_superadmin %}
-          <a href="{% url 'maestros:usuario_lista' %}" {% if seccion == "usuarios" %}class="activo"{% endif %}>🔑 Usuarios</a>
+          <a href="{% url 'maestros:usuario_lista' %}" {% if seccion == "usuarios" %}class="activo"{% endif %}>🔑 <span class="menu-texto">Usuarios</span></a>
         {% endif %}
       {% else %}
-        <a href="{% url 'mi_servicio' %}" {% if seccion == "mi_servicio" %}class="activo"{% endif %}>🚚 Mi servicio</a>
-        <span class="pendiente" title="Disponible en v0.7">⚠️ Reportar novedad</span>
+        <a href="{% url 'mi_servicio' %}" {% if seccion == "mi_servicio" %}class="activo"{% endif %}>🚚 <span class="menu-texto">Mi servicio</span></a>
+        <span class="pendiente" title="Disponible en v0.7">⚠️ <span class="menu-texto">Reportar novedad</span></span>
       {% endif %}
     </nav>
 
@@ -52,6 +57,11 @@
   </aside>
 
   <main class="contenido">
+    <div class="barra-movil">
+      <label for="menu-toggle" class="menu-abrir">☰ Menú</label>
+      <strong>Mi Flota</strong>
+    </div>
+
     {% if messages %}
       <div class="mensajes">
         {% for mensaje in messages %}
