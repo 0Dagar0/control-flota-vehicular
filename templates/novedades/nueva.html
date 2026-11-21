@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block titulo %}Reportar novedad{% endblock %}
+
+{% block contenido %}
+<div class="cabecera">
+  <div>
+    <h1>Reportar novedad</h1>
+    <p>
+      {% if asignacion %}
+        {{ asignacion.vehiculo.placa }} · {{ asignacion.vehiculo.marca }}
+        {{ asignacion.vehiculo.referencia }}
+      {% else %}
+        Sin vehículo asignado
+      {% endif %}
+    </p>
+  </div>
+</div>
+
+<div class="tarjeta">
+  {% if asignacion %}
+    <form method="post" enctype="multipart/form-data" novalidate>
+      {% csrf_token %}
+      {% if errores %}
+        <div class="aviso aviso-error">
+          <ul>{% for error in errores %}<li>{{ error }}</li>{% endfor %}</ul>
+        </div>
+      {% endif %}
+
+      {% for campo in form %}
+        <div class="campo">
+          <label for="{{ campo.id_for_label }}">
+            {{ campo.label }}{% if campo.field.required %} <span class="obligatorio">*</span>{% endif %}
+          </label>
+          {{ campo }}
+          {% for error in campo.errors %}<span class="error">{{ error }}</span>{% endfor %}
+        </div>
+      {% endfor %}
+
+      <div class="campo">
+        <label for="fotos">Fotos (opcionales)</label>
+        <input id="fotos" type="file" name="fotos" multiple accept="image/*">
+        <span class="ayuda">
+          Puedes subir una, varias o ninguna. Cada foto ayuda a documentar mejor la novedad.
+        </span>
+      </div>
+
+      <div class="acciones" style="margin-top:16px">
+        <button type="submit" class="boton boton-grande">Enviar novedad</button>
+        <a class="enlace" href="{% url 'mi_servicio' %}">Cancelar</a>
+      </div>
+    </form>
+  {% else %}
+    <div class="aviso aviso-error">
+      No tienes vehículo asignado; pídeselo al administrador antes de reportar.
+    </div>
+    <div class="acciones" style="margin-top:16px">
+      <a class="boton boton-grande" href="{% url 'mi_servicio' %}">Volver a mi servicio</a>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

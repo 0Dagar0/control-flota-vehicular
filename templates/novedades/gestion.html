@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block titulo %}Gestionar novedad{% endblock %}
+
+{% block contenido %}
+<div class="cabecera">
+  <div>
+    <h1>Gestionar novedad</h1>
+    <p>{{ novedad.vehiculo.placa }} · reportada el {{ novedad.reportada_en|date:"d/m/Y H:i" }}</p>
+  </div>
+</div>
+
+<div class="tarjeta">
+  <h2>Detalle</h2>
+  <div class="resumen">
+    <div><span>Vehículo</span><strong>{{ novedad.vehiculo.placa }}</strong></div>
+    <div><span>Conductor</span><strong>{{ novedad.conductor|default:"Sin asignar" }}</strong></div>
+    <div><span>Origen</span><strong>{{ novedad.get_origen_display }}</strong></div>
+    <div><span>Severidad</span><strong>{{ novedad.get_severidad_display }}</strong></div>
+    <div><span>Estado actual</span><strong>{{ novedad.estado }}</strong></div>
+    <div><span>Requiere superadmin</span><strong>{% if novedad.requiere_superadmin %}Sí{% else %}No{% endif %}</strong></div>
+  </div>
+  <p style="margin-top:16px">{{ novedad.descripcion }}</p>
+</div>
+
+{% if fotos %}
+  <div class="tarjeta">
+    <h2>Fotos de la novedad</h2>
+    {% for foto in fotos %}
+      <p>
+        <a href="{{ foto.imagen.url }}" target="_blank" rel="noopener">{{ foto.nombre_archivo }}</a>
+        {% if foto.descripcion %}· {{ foto.descripcion }}{% endif %}
+      </p>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<div class="tarjeta">
+  <h2>Cambiar estado</h2>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% for campo in form %}
+      <div class="campo">
+        <label for="{{ campo.id_for_label }}">{{ campo.label }}</label>
+        {{ campo }}
+        {% for error in campo.errors %}<span class="error">{{ error }}</span>{% endfor %}
+      </div>
+    {% endfor %}
+    <div class="acciones" style="margin-top:16px">
+      <button type="submit" class="boton boton-grande">Guardar gestión</button>
+      <a class="enlace" href="{% url 'novedades' %}">Volver a la bandeja</a>
+    </div>
+  </form>
+</div>
+
+<div class="tarjeta">
+  <h2>Historial de gestiones</h2>
+  {% for gestion in gestiones %}
+    <p>{{ gestion.fecha|date:"d/m/Y H:i" }} · {{ gestion.usuario|default:"sistema" }} · {{ gestion.descripcion }}</p>
+  {% empty %}
+    <p>Todavía no hay gestiones registradas.</p>
+  {% endfor %}
+</div>
+{% endblock %}

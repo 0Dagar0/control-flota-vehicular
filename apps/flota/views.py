@@ -13,7 +13,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.generic import DetailView, ListView, TemplateView
 
-from .models import Asignacion, Conductor, Documento, FotoVehiculo, Servicio, Vehiculo
+from .models import Asignacion, Conductor, Documento, FotoVehiculo, Novedad, Servicio, Vehiculo
 
 
 class AccesoFlotaMixin(LoginRequiredMixin):
@@ -100,10 +100,10 @@ class DocumentoListaView(AccesoFlotaMixin, ListView):
 class AlertasView(AccesoFlotaMixin, TemplateView):
     """Centro de alertas con datos reales de los modelos disponibles en v0.5.
 
-    Solo se calculan los hechos que existen hoy: documentos, licencias, servicios
-    abiertos, conductores sin vehículo y vehículos sin fotos. Los mantenimientos
-    y las novedades críticas se añadirán con sus modelos (v0.6 y v0.7); mientras
-    tanto no se inventan alertas.
+    Se calculan documentos, licencias, servicios abiertos, conductores sin
+    vehículo, vehículos sin fotos y —desde la v0.7— novedades críticas sin
+    validar. Los mantenimientos llegan en v1.1; mientras tanto no se inventan
+    alertas.
     """
 
     template_name = "flota/alertas.html"
@@ -124,6 +124,24 @@ class AlertasView(AccesoFlotaMixin, TemplateView):
                     "url": url,
                     "boton": boton,
                 }
+            )
+
+        # R7 (v0.7): novedad crítica sin validar. Es la única fuente de bloqueo
+        # del vehículo desde que la v0.7 migró la regla de la inspección.
+        for novedad in (
+            Novedad.objects.filter(severidad=Novedad.Severidad.CRITICA)
+            .exclude(estado=Novedad.Estado.VALIDADA)
+            .select_related("vehiculo")
+        ):
+            agregar(
+                criticas,
+                "⚠️",
+                "Novedad crítica sin validar",
+                f"{novedad.vehiculo.placa} · {novedad.estado} · "
+                f"{novedad.reportada_en:%d/%m/%Y %H:%M}",
+                novedad.descripcion,
+                reverse("novedad_gestion", args=[novedad.pk]),
+                "Gestionar novedad",
             )
 
         # R11: documento vencido del vehículo. La licencia se contabiliza aparte

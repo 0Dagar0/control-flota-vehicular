@@ -26,7 +26,7 @@
       <a href="/" {% if seccion == "panel" %}class="activo"{% endif %}>🏠 <span class="menu-texto">Panel</span></a>
       {% if user.es_admin %}
         <a href="{% url 'alertas' %}" {% if seccion == "alertas" %}class="activo"{% endif %}>🔔 <span class="menu-texto">Alertas</span></a>
-        <span class="pendiente" title="Disponible en v0.7">⚠️ <span class="menu-texto">Novedades</span></span>
+        <a href="{% url 'novedades' %}" {% if seccion == "novedades" %}class="activo"{% endif %}>⚠️ <span class="menu-texto">Novedades</span></a>
         <a href="{% url 'flota:lista' %}" {% if seccion == "vehiculos" %}class="activo"{% endif %}>🚛 <span class="menu-texto">Vehículos</span></a>
         <span class="pendiente" title="Se abre desde cada vehículo">📋 <span class="menu-texto">Hoja de vida</span></span>
         <a href="{% url 'documentos:lista' %}" {% if seccion == "documentos" %}class="activo"{% endif %}>📄 <span class="menu-texto">Documentos</span></a>
@@ -38,7 +38,8 @@
         {% endif %}
       {% else %}
         <a href="{% url 'mi_servicio' %}" {% if seccion == "mi_servicio" %}class="activo"{% endif %}>🚚 <span class="menu-texto">Mi servicio</span></a>
-        <span class="pendiente" title="Disponible en v0.7">⚠️ <span class="menu-texto">Reportar novedad</span></span>
+        <a href="{% url 'novedad_nueva' %}" {% if seccion == "novedades" %}class="activo"{% endif %}>⚠️ <span class="menu-texto">Reportar novedad</span></a>
+        <a href="{% url 'mis_novedades' %}">📋 <span class="menu-texto">Mis novedades</span></a>
       {% endif %}
     </nav>
 

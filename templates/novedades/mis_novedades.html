@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block titulo %}Mis novedades{% endblock %}
+
+{% block contenido %}
+<div class="cabecera">
+  <div>
+    <h1>Mis novedades</h1>
+    <p>Reportes que has enviado y su estado actual.</p>
+  </div>
+  <a class="boton" href="{% url 'novedad_nueva' %}">Reportar novedad</a>
+</div>
+
+<div class="tarjeta">
+  <table>
+    <thead>
+      <tr>
+        <th>Fecha</th>
+        <th>Vehículo</th>
+        <th>Descripción</th>
+        <th>Severidad</th>
+        <th>Estado</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for novedad in novedades %}
+        <tr>
+          <td>{{ novedad.reportada_en|date:"d/m/Y H:i" }}</td>
+          <td>{{ novedad.vehiculo.placa }}</td>
+          <td>{{ novedad.descripcion|truncatechars:60 }}</td>
+          <td>{{ novedad.get_severidad_display }}</td>
+          <td>{{ novedad.estado }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5">Todavía no has reportado novedades.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <div class="acciones" style="margin-top:16px">
+    <a class="enlace" href="{% url 'mi_servicio' %}">Volver a mi servicio</a>
+  </div>
+</div>
+{% endblock %}

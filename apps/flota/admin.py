@@ -7,9 +7,12 @@ from .models import (
     Conductor,
     Configuracion,
     Documento,
+    FotoNovedad,
     FotoVehiculo,
+    Gestion,
     Inspeccion,
     ItemInspeccion,
+    Novedad,
     PlantillaInspeccion,
     RespuestaItem,
     Servicio,
@@ -285,3 +288,43 @@ class InspeccionAdmin(admin.ModelAdmin):
     readonly_fields = ("iniciado_en", "finalizado_en", "duracion", "firma_en", "firmada_por")
     inlines = (RespuestaItemInline,)
     date_hierarchy = "iniciado_en"
+
+
+class FotoNovedadInline(admin.TabularInline):
+    """Fotos opcionales de la novedad (una, varias o ninguna)."""
+
+    model = FotoNovedad
+    extra = 0
+    fields = ("imagen", "descripcion", "subida_en", "subido_por")
+    readonly_fields = ("subida_en", "subido_por")
+
+
+class GestionInline(admin.TabularInline):
+    """Historial de gestiones: quién cambió el estado y por qué."""
+
+    model = Gestion
+    extra = 0
+    fields = ("usuario", "descripcion", "fecha")
+    readonly_fields = ("fecha",)
+
+
+@admin.register(Novedad)
+class NovedadAdmin(admin.ModelAdmin):
+    list_display = (
+        "vehiculo",
+        "conductor",
+        "severidad",
+        "estado",
+        "requiere_superadmin",
+        "reportada_en",
+    )
+    list_filter = ("estado", "severidad", "requiere_superadmin", "origen")
+    search_fields = ("vehiculo__placa", "descripcion")
+    autocomplete_fields = ("vehiculo", "conductor", "inspeccion")
+    readonly_fields = ("reportada_en", "actualizada_en", "bloquea_vehiculo")
+    inlines = (FotoNovedadInline, GestionInline)
+    date_hierarchy = "reportada_en"
+
+    @admin.display(description="bloquea el vehículo", boolean=True)
+    def bloquea_vehiculo(self, obj):
+        return obj.bloquea_vehiculo
