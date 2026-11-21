@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block titulo %}Renovar documento{% endblock %}
+
+{% block contenido %}
+<div class="cabecera">
+  <div>
+    <h1>Renovar documento</h1>
+    <p>
+      {{ documento.get_tipo_display }} · {{ documento.vehiculo.placa|default:documento.conductor }}
+      · vencía el {{ documento.vencimiento|date:"d/m/Y" }}
+      ({{ documento.semaforo_etiqueta }})
+    </p>
+  </div>
+</div>
+
+<div class="tarjeta">
+  <form method="post" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+    {% for campo in form %}
+      <div class="campo">
+        <label for="{{ campo.id_for_label }}">
+          {{ campo.label }}{% if campo.field.required %} <span class="obligatorio">*</span>{% endif %}
+        </label>
+        {{ campo }}
+        {% for error in campo.errors %}<span class="error">{{ error }}</span>{% endfor %}
+      </div>
+    {% endfor %}
+    <div class="aviso ancho">
+      La renovación actualiza el vencimiento y los datos del documento. El soporte sigue siendo
+      opcional (R19); sin foto o PDF el documento queda como «soporte pendiente».
+    </div>
+    <div class="acciones ancho">
+      <button type="submit" class="boton boton-grande">Guardar renovación</button>
+      <a class="enlace" href="{% url 'documentos:lista' %}">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

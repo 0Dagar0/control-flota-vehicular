@@ -8,4 +8,5 @@ app_name = "documentos"
 
 urlpatterns = [
     path("", views.DocumentoListaView.as_view(), name="lista"),
+    path("<int:pk>/renovar/", views.DocumentoRenovarView.as_view(), name="renovar"),
 ]

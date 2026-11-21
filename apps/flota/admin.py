@@ -139,6 +139,7 @@ class DocumentoAdmin(admin.ModelAdmin):
         "conductor",
         "vencimiento",
         "estado",
+        "semaforo_etiqueta",
         "estado_soporte",
         "soporte",
     )
@@ -146,11 +147,22 @@ class DocumentoAdmin(admin.ModelAdmin):
     search_fields = ("vehiculo__placa", "conductor__usuario__documento", "numero", "entidad")
     autocomplete_fields = ("vehiculo", "conductor")
     date_hierarchy = "vencimiento"
-    readonly_fields = ("creado_en", "creado_por", "actualizado_en", "estado", "estado_soporte")
+    readonly_fields = (
+        "creado_en",
+        "creado_por",
+        "actualizado_en",
+        "estado",
+        "semaforo_etiqueta",
+        "estado_soporte",
+    )
 
     @admin.display(description="vencimiento")
     def estado(self, obj):
         return obj.estado
+
+    @admin.display(description="semáforo")
+    def semaforo_etiqueta(self, obj):
+        return obj.semaforo_etiqueta
 
     @admin.display(description="soporte", ordering="soporte")
     def estado_soporte(self, obj):

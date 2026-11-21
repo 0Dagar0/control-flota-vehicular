@@ -6,13 +6,16 @@ conductor no puede entrar todavía porque su pantalla llega en v0.5.
 
 from datetime import timedelta
 
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.db.models import Count, Exists, OuterRef, Q
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.views.generic import DetailView, ListView, TemplateView
 
+from .forms_documentos import DocumentoRenovarForm
 from .models import Asignacion, Conductor, Documento, FotoVehiculo, Novedad, Servicio, Vehiculo
 
 
@@ -95,6 +98,40 @@ class DocumentoListaView(AccesoFlotaMixin, ListView):
         contexto["solo_pendientes"] = self.request.GET.get("soporte") == "pendiente"
         contexto["total_pendientes"] = Documento.objects.filter(soporte="").count()
         return contexto
+
+
+class DocumentoRenovarView(AccesoFlotaMixin, TemplateView):
+    """Renueva el vencimiento de un documento (v0.9)."""
+
+    template_name = "flota/documento_renovar.html"
+
+    def get_documento(self):
+        return get_object_or_404(
+            Documento.objects.select_related("vehiculo", "conductor"),
+            pk=self.kwargs["pk"],
+        )
+
+    def contexto(self, documento, form=None):
+        return {
+            "seccion": "documentos",
+            "documento": documento,
+            "form": form or DocumentoRenovarForm(instance=documento),
+        }
+
+    def get(self, request, *args, **kwargs):
+        return render(request, self.template_name, self.contexto(self.get_documento()))
+
+    def post(self, request, *args, **kwargs):
+        documento = self.get_documento()
+        form = DocumentoRenovarForm(request.POST, request.FILES, instance=documento)
+        if form.is_valid():
+            form.save()
+            messages.success(
+                request,
+                f"Documento renovado: nuevo vencimiento {documento.vencimiento:%d/%m/%Y}.",
+            )
+            return redirect("documentos:lista")
+        return render(request, self.template_name, self.contexto(documento, form))
 
 
 class AlertasView(AccesoFlotaMixin, TemplateView):
@@ -180,7 +217,7 @@ class AlertasView(AccesoFlotaMixin, TemplateView):
                 "Ver conductores",
             )
 
-        # Umbrales del contrato §9: 7 y 3 días antes del vencimiento.
+        # Umbrales del contrato §9: 7, 3 y 0 días. Los de 3 y 0 son críticos.
         por_vencer = (
             Documento.objects.filter(
                 vencimiento__gte=hoy, vencimiento__lte=hoy + timedelta(days=7)
@@ -191,14 +228,20 @@ class AlertasView(AccesoFlotaMixin, TemplateView):
         for documento in por_vencer:
             placa = documento.vehiculo.placa
             dias = (documento.vencimiento - hoy).days
+            titulo = (
+                f"{documento.get_tipo_display()} vence hoy"
+                if dias == 0
+                else f"{documento.get_tipo_display()} por vencer en {dias} días"
+            )
             agregar(
-                proximas,
+                criticas if dias <= 3 else proximas,
                 "🗓️",
-                f"{documento.get_tipo_display()} por vencer en {dias} días",
-                f"{placa} · vence el {documento.vencimiento:%d/%m/%Y}",
-                "Cargar el soporte antes del vencimiento evita que el vehículo quede bloqueado.",
-                reverse("flota:detalle", args=[placa]),
-                "Abrir hoja de vida",
+                titulo,
+                f"{placa} · vence el {documento.vencimiento:%d/%m/%Y} · "
+                f"{documento.semaforo_etiqueta}",
+                "Renueva el documento y carga el soporte antes de que venza.",
+                reverse("documentos:renovar", args=[documento.pk]),
+                "Renovar documento",
             )
 
         # Servicios abiertos durante más de 12 horas.

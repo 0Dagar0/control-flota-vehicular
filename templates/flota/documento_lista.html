@@ -26,7 +26,9 @@
           <th>Entidad</th>
           <th>Vence</th>
           <th>Estado</th>
+          <th>Semáforo</th>
           <th>Soporte</th>
+          <th>Acción</th>
         </tr>
       </thead>
       <tbody>
@@ -52,11 +54,21 @@
               {% endif %}
             </td>
             <td>
+              <span class="insignia insignia-{{ documento.semaforo_color }}">
+                {{ documento.semaforo_etiqueta }}
+              </span>
+            </td>
+            <td>
               {% if documento.tiene_soporte %}
                 <span class="insignia insignia-verde">Cargado</span>
               {% else %}
                 <span class="insignia insignia-amarilla">Soporte pendiente</span>
               {% endif %}
+            </td>
+            <td>
+              <a class="boton boton-secundario" href="{% url 'documentos:renovar' documento.pk %}">
+                Renovar
+              </a>
             </td>
           </tr>
         {% endfor %}

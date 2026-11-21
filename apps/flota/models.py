@@ -451,6 +451,46 @@ class Documento(models.Model):
             return "Por vencer"
         return "Vigente"
 
+    class Semaforo(models.TextChoices):
+        VENCIDO = "vencido", "Vencido"
+        HOY = "hoy", "Vence hoy"
+        TRES = "tres", "3 días"
+        SIETE = "siete", "7 días"
+        QUINCE = "quince", "15 días"
+        TREINTA = "treinta", "30 días"
+        VIGENTE = "vigente", "Vigente"
+
+    @property
+    def semaforo(self) -> str:
+        """Nivel del semáforo de vencimientos (30/15/7/3/0, documento maestro v0.9)."""
+        dias = self.dias_para_vencer
+        if dias < 0:
+            return self.Semaforo.VENCIDO
+        if dias == 0:
+            return self.Semaforo.HOY
+        if dias <= 3:
+            return self.Semaforo.TRES
+        if dias <= 7:
+            return self.Semaforo.SIETE
+        if dias <= 15:
+            return self.Semaforo.QUINCE
+        if dias <= 30:
+            return self.Semaforo.TREINTA
+        return self.Semaforo.VIGENTE
+
+    @property
+    def semaforo_etiqueta(self) -> str:
+        return self.Semaforo(self.semaforo).label
+
+    @property
+    def semaforo_color(self) -> str:
+        """Clase de color para las plantillas: rojo / amarillo / verde."""
+        if self.semaforo in (self.Semaforo.VENCIDO, self.Semaforo.HOY, self.Semaforo.TRES):
+            return "rojo"
+        if self.semaforo in (self.Semaforo.SIETE, self.Semaforo.QUINCE):
+            return "amarillo"
+        return "verde"
+
     @classmethod
     def proximo_vencimiento(cls, vehiculo: Vehiculo) -> date | None:
         """Fecha del documento más próximo a vencer de un vehículo."""
