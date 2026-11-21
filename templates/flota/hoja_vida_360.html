@@ -93,4 +93,29 @@
     <p>Sin asignaciones registradas.</p>
   {% endfor %}
 </div>
+
+<div class="tarjeta">
+  <h2>Mantenimientos</h2>
+  {% for mantenimiento in mantenimientos %}
+    <p>
+      {{ mantenimiento.fecha|date:"d/m/Y" }} · {{ mantenimiento.get_tipo_display }} ·
+      {{ mantenimiento.servicio }} · {{ mantenimiento.vehiculo.placa }} ·
+      {{ mantenimiento.mensaje_km }}
+    </p>
+  {% empty %}
+    <div class="vacio-panel">Sin mantenimientos registrados.</div>
+  {% endfor %}
+</div>
+
+<div class="tarjeta">
+  <h2>Incidentes</h2>
+  {% for incidente in incidentes %}
+    <p>
+      {{ incidente.fecha|date:"d/m/Y" }} · {{ incidente.get_gravedad_display }} ·
+      {{ incidente.descripcion|truncatechars:70 }}
+    </p>
+  {% empty %}
+    <div class="vacio-panel">Sin incidentes registrados.</div>
+  {% endfor %}
+</div>
 {% endblock %}

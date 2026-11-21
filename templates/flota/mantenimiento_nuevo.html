@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block titulo %}Registrar mantenimiento{% endblock %}
+
+{% block contenido %}
+<div class="cabecera">
+  <div>
+    <h1>Registrar mantenimiento</h1>
+    <p>El cálculo es manual: el sistema no deduce intervalos por marca</p>
+  </div>
+</div>
+
+<div class="tarjeta">
+  <form method="post" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+    {% for campo in form %}
+      <div class="campo">
+        <label for="{{ campo.id_for_label }}">
+          {{ campo.label }}{% if campo.field.required %} <span class="obligatorio">*</span>{% endif %}
+        </label>
+        {{ campo }}
+        {% for error in campo.errors %}<span class="error">{{ error }}</span>{% endfor %}
+      </div>
+    {% endfor %}
+    <div class="aviso ancho">
+      El kilometraje no puede bajar (R12). El próximo km debe ser mayor al km actual (R16) y la
+      fecha no puede ser futura (R17). La factura es opcional: JPG, PNG, WEBP o PDF de hasta 5 MB.
+    </div>
+    <div class="acciones ancho">
+      <button type="submit" class="boton boton-grande">Guardar mantenimiento</button>
+      <a class="enlace" href="{% url 'mantenimientos' %}">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -17,12 +17,15 @@ from django.utils import timezone
 from django.views.generic import DetailView, ListView, TemplateView
 
 from .forms_documentos import DocumentoRenovarForm
+from .forms_mantenimiento import IncidenteForm, MantenimientoForm
 from .models import (
     Asignacion,
     Conductor,
     Documento,
     FotoVehiculo,
+    Incidente,
     Inspeccion,
+    Mantenimiento,
     Novedad,
     Servicio,
     Vehiculo,
@@ -215,11 +218,105 @@ class HojaVida360View(AccesoFlotaMixin, DetailView):
                 "fotos": vehiculo.fotos.all(),
                 "servicios": vehiculo.servicios.select_related("conductor")[:5],
                 "asignaciones": vehiculo.asignaciones.select_related("conductor")[:5],
+                "mantenimientos": vehiculo.mantenimientos.all()[:5],
+                "incidentes": vehiculo.incidentes.all()[:5],
                 "cumplimiento_documental": vehiculo.cumplimiento_documental,
                 "ultima_inspeccion": vehiculo.inspecciones.first(),
             }
         )
         return contexto
+
+
+class MantenimientoListaView(AccesoFlotaMixin, ListView):
+    """Histórico de mantenimientos con el aviso de próximo km (R16/R17)."""
+
+    model = Mantenimiento
+    template_name = "flota/mantenimiento_lista.html"
+    context_object_name = "mantenimientos"
+
+    def get_queryset(self):
+        consulta = Mantenimiento.objects.select_related("vehiculo")
+        placa = self.request.GET.get("vehiculo", "").strip()
+        if placa:
+            consulta = consulta.filter(vehiculo__placa__icontains=placa)
+        listado = list(consulta.order_by("proximo_km", "-fecha"))
+        estado = self.request.GET.get("estado")
+        if estado:
+            listado = [item for item in listado if item.estado_semforo == estado]
+        return listado
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        contexto["seccion"] = "mantenimientos"
+        return contexto
+
+
+class MantenimientoNuevoView(AccesoFlotaMixin, TemplateView):
+    template_name = "flota/mantenimiento_nuevo.html"
+
+    def get(self, request, *args, **kwargs):
+        return render(
+            request,
+            self.template_name,
+            {"seccion": "mantenimientos", "form": MantenimientoForm()},
+        )
+
+    def post(self, request, *args, **kwargs):
+        form = MantenimientoForm(request.POST, request.FILES)
+        if form.is_valid():
+            mantenimiento = form.save(commit=False)
+            mantenimiento.creado_por = request.user
+            mantenimiento.save()
+            messages.success(
+                request,
+                f"Mantenimiento registrado para {mantenimiento.vehiculo.placa}. "
+                f"{mantenimiento.mensaje_km}.",
+            )
+            return redirect("mantenimientos")
+        return render(
+            request, self.template_name, {"seccion": "mantenimientos", "form": form}
+        )
+
+
+class IncidenteListaView(AccesoFlotaMixin, ListView):
+    model = Incidente
+    template_name = "flota/incidente_lista.html"
+    context_object_name = "incidentes"
+
+    def get_queryset(self):
+        consulta = Incidente.objects.select_related("vehiculo", "conductor")
+        gravedad = self.request.GET.get("gravedad")
+        if gravedad:
+            consulta = consulta.filter(gravedad=gravedad)
+        return consulta.order_by("-fecha", "-pk")
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        contexto["seccion"] = "mantenimientos"
+        return contexto
+
+
+class IncidenteNuevoView(AccesoFlotaMixin, TemplateView):
+    template_name = "flota/incidente_nuevo.html"
+
+    def get(self, request, *args, **kwargs):
+        return render(
+            request,
+            self.template_name,
+            {"seccion": "mantenimientos", "form": IncidenteForm()},
+        )
+
+    def post(self, request, *args, **kwargs):
+        form = IncidenteForm(request.POST)
+        if form.is_valid():
+            incidente = form.save(commit=False)
+            incidente.creado_por = request.user
+            incidente.save()
+            messages.success(request, "Incidente registrado.")
+            return redirect("incidentes")
+        return render(
+            request, self.template_name, {"seccion": "mantenimientos", "form": form}
+        )
 
 
 class AlertasView(AccesoFlotaMixin, TemplateView):

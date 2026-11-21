@@ -31,7 +31,8 @@
         <span class="pendiente" title="Se abre desde cada vehículo">📋 <span class="menu-texto">Hoja de vida</span></span>
         <a href="{% url 'documentos:lista' %}" {% if seccion == "documentos" %}class="activo"{% endif %}>📄 <span class="menu-texto">Documentos</span></a>
         <a href="{% url 'conductores' %}" {% if seccion == "conductores" %}class="activo"{% endif %}>👤 <span class="menu-texto">Conductores</span></a>
-        <span class="pendiente" title="Disponible en v1.1">🔧 <span class="menu-texto">Mantenimientos</span></span>
+        <a href="{% url 'mantenimientos' %}" {% if seccion == "mantenimientos" %}class="activo"{% endif %}>🔧 <span class="menu-texto">Mantenimientos</span></a>
+        <a href="{% url 'incidentes' %}" {% if seccion == "mantenimientos" %}class="activo"{% endif %}>🚧 <span class="menu-texto">Incidentes</span></a>
         <span class="pendiente" title="Disponible en v0.10">📊 <span class="menu-texto">Reportes</span></span>
         {% if user.es_superadmin %}
           <a href="{% url 'maestros:usuario_lista' %}" {% if seccion == "usuarios" %}class="activo"{% endif %}>🔑 <span class="menu-texto">Usuarios</span></a>

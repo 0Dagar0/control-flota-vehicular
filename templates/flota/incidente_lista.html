@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block titulo %}Incidentes{% endblock %}
+
+{% block contenido %}
+<div class="cabecera">
+  <div>
+    <h1>Incidentes</h1>
+    <p>Accidentes y daños registrados en la flota</p>
+  </div>
+  <a class="boton" href="{% url 'incidente_nuevo' %}">Registrar incidente</a>
+</div>
+
+<div class="tarjeta">
+  <form method="get" class="formulario">
+    <div class="campo">
+      <label for="gravedad">Gravedad</label>
+      <select id="gravedad" name="gravedad">
+        <option value="">Todas</option>
+        <option value="leve" {% if request.GET.gravedad == "leve" %}selected{% endif %}>Leve</option>
+        <option value="moderada" {% if request.GET.gravedad == "moderada" %}selected{% endif %}>Moderada</option>
+        <option value="grave" {% if request.GET.gravedad == "grave" %}selected{% endif %}>Grave</option>
+      </select>
+    </div>
+    <div class="acciones">
+      <button type="submit" class="boton">Filtrar</button>
+      <a class="enlace" href="{% url 'incidentes' %}">Limpiar filtros</a>
+    </div>
+  </form>
+</div>
+
+<div class="tarjeta">
+  <table>
+    <thead><tr><th>Fecha</th><th>Vehículo</th><th>Conductor</th><th>Gravedad</th><th>Descripción</th><th>Acción</th></tr></thead>
+    <tbody>
+      {% for incidente in incidentes %}
+        <tr>
+          <td>{{ incidente.fecha|date:"d/m/Y" }}</td>
+          <td>{{ incidente.vehiculo.placa }}</td>
+          <td>{{ incidente.conductor|default:"—" }}</td>
+          <td>
+            <span class="insignia
+              {% if incidente.gravedad == 'grave' %}insignia-roja
+              {% elif incidente.gravedad == 'moderada' %}insignia-amarilla
+              {% else %}insignia-verde{% endif %}">
+              {{ incidente.get_gravedad_display }}
+            </span>
+          </td>
+          <td>{{ incidente.descripcion|truncatechars:70 }}</td>
+          <td>{{ incidente.accion|default:"—"|truncatechars:50 }}</td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6">No hay incidentes registrados.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

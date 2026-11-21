@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block titulo %}Registrar incidente{% endblock %}
+
+{% block contenido %}
+<div class="cabecera">
+  <div>
+    <h1>Registrar incidente</h1>
+    <p>Se guarda la descripción, la causa y la acción tomada</p>
+  </div>
+</div>
+
+<div class="tarjeta">
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% for campo in form %}
+      <div class="campo">
+        <label for="{{ campo.id_for_label }}">
+          {{ campo.label }}{% if campo.field.required %} <span class="obligatorio">*</span>{% endif %}
+        </label>
+        {{ campo }}
+        {% for error in campo.errors %}<span class="error">{{ error }}</span>{% endfor %}
+      </div>
+    {% endfor %}
+    <div class="aviso ancho">La fecha no puede ser futura (R17). Nada se borra: el incidente queda en el historial.</div>
+    <div class="acciones ancho">
+      <button type="submit" class="boton boton-grande">Guardar incidente</button>
+      <a class="enlace" href="{% url 'incidentes' %}">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

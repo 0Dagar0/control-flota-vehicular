@@ -11,8 +11,10 @@ from .models import (
     FotoNovedad,
     FotoVehiculo,
     Gestion,
+    Incidente,
     Inspeccion,
     ItemInspeccion,
+    Mantenimiento,
     Novedad,
     PlantillaInspeccion,
     RespuestaItem,
@@ -343,10 +345,46 @@ class NovedadAdmin(admin.ModelAdmin):
         return obj.bloquea_vehiculo
 
 
+@admin.register(Mantenimiento)
+class MantenimientoAdmin(admin.ModelAdmin):
+    list_display = (
+        "vehiculo",
+        "tipo",
+        "fecha",
+        "km",
+        "proximo_km",
+        "estado_factura",
+        "creado_por",
+    )
+    list_filter = ("tipo", "estado_factura", "fecha")
+    search_fields = ("vehiculo__placa", "servicio", "parte")
+    autocomplete_fields = ("vehiculo",)
+    readonly_fields = ("estado_factura", "creado_en", "actualizado_en")
+    date_hierarchy = "fecha"
+
+    def save_model(self, request, obj, form, change):
+        if not obj.creado_por_id:
+            obj.creado_por = request.user
+        super().save_model(request, obj, form, change)
+
+
+@admin.register(Incidente)
+class IncidenteAdmin(admin.ModelAdmin):
+    list_display = ("vehiculo", "conductor", "fecha", "gravedad", "creado_por")
+    list_filter = ("gravedad", "fecha")
+    search_fields = ("vehiculo__placa", "descripcion")
+    autocomplete_fields = ("vehiculo", "conductor")
+    readonly_fields = ("creado_en",)
+    date_hierarchy = "fecha"
+
+    def save_model(self, request, obj, form, change):
+        if not obj.creado_por_id:
+            obj.creado_por = request.user
+        super().save_model(request, obj, form, change)
+
+
 @admin.register(Autorizacion)
 class AutorizacionAdmin(admin.ModelAdmin):
-    """Firmas de responsabilidad: justificación, hash, IP y fecha."""
-
     list_display = ("novedad", "superadmin", "fecha", "expira_en", "vigente", "ip")
     list_filter = ("fecha",)
     search_fields = ("novedad__vehiculo__placa", "justificacion")

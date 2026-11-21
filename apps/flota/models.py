@@ -1189,3 +1189,174 @@ class Autorizacion(models.Model):
                 {"justificacion": "La justificación debe tener entre 20 y 500 caracteres."}
             )
 
+
+def validar_soporte_factura(archivo):
+    """Factura JPG/PNG/WebP/PDF de hasta 5 MB (decisión del 15/11)."""
+    if archivo.size > 5 * 1024 * 1024:
+        raise ValidationError("La factura no puede pesar más de 5 MB.")
+    extension = Path(archivo.name).suffix.lower()
+    if extension not in {".jpg", ".jpeg", ".png", ".webp", ".pdf"}:
+        raise ValidationError("La factura debe ser JPG, PNG, WEBP o PDF.")
+
+
+class Mantenimiento(models.Model):
+    """Mantenimiento registrado a mano: tipo, servicio, parte y próximo km (R16/R17)."""
+
+    class Tipo(models.TextChoices):
+        PREVENTIVO = "preventivo", "Preventivo"
+        CORRECTIVO = "correctivo", "Correctivo"
+
+    class EstadoFactura(models.TextChoices):
+        PENDIENTE = "pendiente", "Pendiente"
+        ADJUNTA = "adjunta", "Adjunta"
+
+    vehiculo = models.ForeignKey(
+        Vehiculo,
+        verbose_name="vehículo",
+        on_delete=models.PROTECT,
+        related_name="mantenimientos",
+    )
+    tipo = models.CharField(
+        "tipo", max_length=12, choices=Tipo.choices, default=Tipo.PREVENTIVO
+    )
+    servicio = models.CharField("servicio realizado", max_length=200)
+    parte = models.CharField("parte intervenida", max_length=120)
+    fecha = models.DateField("fecha", default=timezone.localdate)
+    km = models.PositiveIntegerField("kilometraje al hacer el mantenimiento")
+    proximo_km = models.PositiveIntegerField("próximo cambio (km)")
+    proxima_fecha = models.DateField("próxima fecha", null=True, blank=True)
+    costo = models.DecimalField(
+        "costo", max_digits=12, decimal_places=2, null=True, blank=True
+    )
+    observaciones = models.TextField("observaciones", blank=True)
+    estado_factura = models.CharField(
+        "estado de la factura",
+        max_length=10,
+        choices=EstadoFactura.choices,
+        default=EstadoFactura.PENDIENTE,
+    )
+    soporte_factura = models.FileField(
+        "factura (JPG/PNG/WebP/PDF)",
+        upload_to="mantenimientos/facturas/%Y/%m/",
+        max_length=255,
+        blank=True,
+        validators=[validar_soporte_factura],
+    )
+
+    creado_en = models.DateTimeField("creado en", auto_now_add=True)
+    creado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name="creado por",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    actualizado_en = models.DateTimeField("actualizado en", auto_now=True)
+
+    class Meta:
+        verbose_name = "mantenimiento"
+        verbose_name_plural = "mantenimientos"
+        ordering = ["-fecha", "-pk"]
+
+    def __str__(self):
+        return f"{self.vehiculo.placa} · {self.get_tipo_display()} · {self.fecha:%d/%m/%Y}"
+
+    def save(self, *args, **kwargs):
+        self.estado_factura = (
+            self.EstadoFactura.ADJUNTA
+            if self.soporte_factura
+            else self.EstadoFactura.PENDIENTE
+        )
+        super().save(*args, **kwargs)
+
+    def clean(self):
+        super().clean()
+        errores = {}
+        if self.fecha and self.fecha > timezone.localdate():
+            errores["fecha"] = "La fecha no puede ser futura (R17)."
+        if (
+            self.km is not None
+            and self.proximo_km is not None
+            and self.proximo_km <= self.km
+        ):
+            errores["proximo_km"] = (
+                "El próximo km debe ser mayor al km del mantenimiento (R16)."
+            )
+        if self.vehiculo_id and self.km is not None and self.km < self.vehiculo.km_actual:
+            errores["km"] = "El km no puede ser menor al último registrado del vehículo."
+        if errores:
+            raise ValidationError(errores)
+
+    @property
+    def km_restantes(self) -> int:
+        return self.proximo_km - self.vehiculo.km_actual
+
+    @property
+    def estado_semforo(self) -> str:
+        if self.km_restantes < 0:
+            return "vencido"
+        if self.km_restantes <= Configuracion.obtener().umbral_mantenimiento_km:
+            return "aviso"
+        return "ok"
+
+    @property
+    def mensaje_km(self) -> str:
+        if self.km_restantes < 0:
+            return f"Vencido hace {-self.km_restantes} km"
+        return f"Faltan {self.km_restantes} km"
+
+
+class Incidente(models.Model):
+    """Incidente de tránsito o daño, con gravedad, causa y acción tomada."""
+
+    class Gravedad(models.TextChoices):
+        LEVE = "leve", "Leve"
+        MODERADA = "moderada", "Moderada"
+        GRAVE = "grave", "Grave"
+
+    vehiculo = models.ForeignKey(
+        Vehiculo,
+        verbose_name="vehículo",
+        on_delete=models.PROTECT,
+        related_name="incidentes",
+    )
+    conductor = models.ForeignKey(
+        Conductor,
+        verbose_name="conductor",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="incidentes",
+    )
+    fecha = models.DateField("fecha", default=timezone.localdate)
+    gravedad = models.CharField(
+        "gravedad", max_length=10, choices=Gravedad.choices, default=Gravedad.LEVE
+    )
+    descripcion = models.TextField("descripción")
+    causa = models.TextField("causa", blank=True)
+    accion = models.TextField("acción tomada", blank=True)
+
+    creado_en = models.DateTimeField("creado en", auto_now_add=True)
+    creado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name="creado por",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+
+    class Meta:
+        verbose_name = "incidente"
+        verbose_name_plural = "incidentes"
+        ordering = ["-fecha", "-pk"]
+
+    def __str__(self):
+        return f"{self.vehiculo.placa} · {self.get_gravedad_display()} · {self.fecha:%d/%m/%Y}"
+
+    def clean(self):
+        super().clean()
+        if self.fecha and self.fecha > timezone.localdate():
+            raise ValidationError({"fecha": "La fecha no puede ser futura (R17)."})
+
