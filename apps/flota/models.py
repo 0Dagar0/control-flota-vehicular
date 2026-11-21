@@ -151,10 +151,10 @@ class Vehiculo(models.Model):
             return self.Estado.FUERA_DE_SERVICIO
         if self.documentos_vencidos.exists():
             return self.Estado.BLOQUEADO_DOCUMENTO
-        # R7: una inspección firmada hoy con novedad crítica bloquea el vehículo.
-        if self.inspecciones.filter(
-            resultado="bloqueada", finalizado_en__date=timezone.localdate()
-        ).exists():
+        # R7 (v0.7, opción A): solo la novedad crítica sin validar bloquea.
+        # La inspección ya no es fuente de bloqueo: al firmarse como bloqueada
+        # crea la novedad, que pasa a ser la única fuente de verdad.
+        if self.novedades.filter(severidad="critica").exclude(estado="VALIDADA").exists():
             return self.Estado.BLOQUEADO_NOVEDAD
         return self.Estado.OPERATIVO
 
@@ -779,6 +779,37 @@ class Inspeccion(models.Model):
                 "firmada_por",
             ]
         )
+        if self.resultado == self.Resultado.BLOQUEADA:
+            self.crear_novedad_desde_inspeccion(usuario)
+
+    def crear_novedad_desde_inspeccion(self, usuario=None) -> "Novedad":
+        """R7: convierte la novedad crítica de la inspección en una ``Novedad``.
+
+        Es idempotente: si la inspección ya generó su novedad, devuelve esa.
+        """
+        existente = Novedad.objects.filter(inspeccion=self).first()
+        if existente:
+            return existente
+
+        criticas = self.respuestas.filter(
+            estado=RespuestaItem.Estado.CON_NOVEDAD, item__es_critico=True
+        ).select_related("item")
+        resumen = "; ".join(
+            f"{respuesta.item.nombre}: {respuesta.informe.strip()}"
+            if respuesta.informe
+            else respuesta.item.nombre
+            for respuesta in criticas
+        )
+        return Novedad.objects.create(
+            vehiculo=self.vehiculo,
+            conductor=self.conductor,
+            inspeccion=self,
+            origen=Novedad.Origen.INSPECCION,
+            severidad=Novedad.Severidad.CRITICA,
+            estado=Novedad.Estado.ABIERTA,
+            descripcion=f"Novedad crítica detectada en la inspección rápida: {resumen}",
+            reportada_por=usuario,
+        )
 
     @classmethod
     def aprobada_hoy(cls, vehiculo: Vehiculo) -> bool:
@@ -843,4 +874,205 @@ class RespuestaItem(models.Model):
             raise ValidationError(
                 {"foto": "La foto es obligatoria cuando el ítem tiene una novedad."}
             )
+
+
+def ruta_foto_novedad(instancia: "FotoNovedad", nombre_original: str) -> str:
+    """Ruta: ``fotos/novedades/2026/11/ABC123-1.png`` (se numeran las fotos)."""
+    hoy = timezone.localdate()
+    extension = Path(nombre_original).suffix.lower() or ".jpg"
+    placa = instancia.novedad.vehiculo.placa
+    numero = FotoNovedad.objects.filter(novedad=instancia.novedad).count() + 1
+    return f"fotos/novedades/{hoy:%Y/%m}/{placa}-{numero}{extension}"
+
+
+class Novedad(models.Model):
+    """Novedad de un vehículo, con la máquina de estados del contrato §8.1."""
+
+    class Origen(models.TextChoices):
+        INSPECCION = "inspeccion", "Inspección"
+        SERVICIO = "servicio", "Servicio"
+        REPORTE = "reporte", "Reporte del conductor"
+
+    class Severidad(models.TextChoices):
+        BAJA = "baja", "Baja"
+        MEDIA = "media", "Media"
+        ALTA = "alta", "Alta"
+        CRITICA = "critica", "Crítica"
+
+    class Estado(models.TextChoices):
+        ABIERTA = "ABIERTA", "Abierta"
+        EN_PROCESO = "EN_PROCESO", "En proceso"
+        RESUELTA = "RESUELTA", "Resuelta"
+        VALIDADA = "VALIDADA", "Validada"
+        RECHAZADA = "RECHAZADA", "Rechazada"
+
+    # ABIERTA → EN_PROCESO → RESUELTA → VALIDADA; salida RECHAZADA desde las dos primeras.
+    TRANSICIONES = {
+        Estado.ABIERTA: (Estado.EN_PROCESO, Estado.RECHAZADA),
+        Estado.EN_PROCESO: (Estado.RESUELTA, Estado.RECHAZADA),
+        Estado.RESUELTA: (Estado.VALIDADA,),
+        Estado.VALIDADA: (),
+        Estado.RECHAZADA: (),
+    }
+
+    vehiculo = models.ForeignKey(
+        Vehiculo,
+        verbose_name="vehículo",
+        on_delete=models.PROTECT,
+        related_name="novedades",
+    )
+    conductor = models.ForeignKey(
+        Conductor,
+        verbose_name="conductor",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="novedades",
+    )
+    inspeccion = models.ForeignKey(
+        Inspeccion,
+        verbose_name="inspección de origen",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="novedades",
+    )
+    origen = models.CharField(
+        "origen", max_length=12, choices=Origen.choices, default=Origen.REPORTE
+    )
+    descripcion = models.TextField("descripción")
+    severidad = models.CharField(
+        "severidad", max_length=10, choices=Severidad.choices, default=Severidad.MEDIA
+    )
+    estado = models.CharField(
+        "estado", max_length=12, choices=Estado.choices, default=Estado.ABIERTA
+    )
+    requiere_superadmin = models.BooleanField("requiere superadmin", default=False)
+
+    reportada_en = models.DateTimeField("reportada en", auto_now_add=True)
+    actualizada_en = models.DateTimeField("actualizada en", auto_now=True)
+    reportada_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name="reportada por",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+
+    class Meta:
+        verbose_name = "novedad"
+        verbose_name_plural = "novedades"
+        ordering = ["-reportada_en", "-pk"]
+
+    def __str__(self):
+        return f"{self.vehiculo.placa} · {self.get_severidad_display()} · {self.estado}"
+
+    def save(self, *args, **kwargs):
+        if self.severidad == self.Severidad.CRITICA:
+            self.requiere_superadmin = True
+        super().save(*args, **kwargs)
+
+    def clean(self):
+        super().clean()
+        if self.severidad == self.Severidad.CRITICA:
+            self.requiere_superadmin = True
+
+    @property
+    def bloquea_vehiculo(self) -> bool:
+        """R7: una crítica bloquea hasta que pasa a VALIDADA (contrato §8.1)."""
+        return (
+            self.severidad == self.Severidad.CRITICA
+            and self.estado != self.Estado.VALIDADA
+        )
+
+    def cambiar_estado(self, estado_nuevo, usuario=None, descripcion=""):
+        """Aplica una transición válida y deja constancia en ``Gestion``."""
+        if estado_nuevo not in self.TRANSICIONES[self.estado]:
+            raise ValidationError(
+                f"No se puede pasar de {self.estado} a {estado_nuevo}."
+            )
+        anterior = self.estado
+        self.estado = estado_nuevo
+        self.save(update_fields=["estado", "actualizada_en", "requiere_superadmin"])
+        Gestion.objects.create(
+            novedad=self,
+            usuario=usuario,
+            descripcion=descripcion or f"Cambio de {anterior} a {estado_nuevo}",
+        )
+
+    @classmethod
+    def criticas_de(cls, vehiculo: Vehiculo):
+        """Novedades críticas que bloquean al vehículo (R7)."""
+        return cls.objects.filter(
+            vehiculo=vehiculo, severidad=cls.Severidad.CRITICA
+        ).exclude(estado=cls.Estado.VALIDADA)
+
+
+class Gestion(models.Model):
+    """Actuación de un admin o superadmin sobre una novedad (contrato §7)."""
+
+    novedad = models.ForeignKey(
+        Novedad,
+        verbose_name="novedad",
+        on_delete=models.CASCADE,
+        related_name="gestiones",
+    )
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name="usuario",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    descripcion = models.TextField("descripción")
+    fecha = models.DateTimeField("fecha", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "gestión de novedad"
+        verbose_name_plural = "gestión de novedades"
+        ordering = ["-fecha", "-pk"]
+
+    def __str__(self):
+        return f"{self.novedad} · {self.fecha:%d/%m/%Y %H:%M}"
+
+
+class FotoNovedad(models.Model):
+    """Foto opcional de una novedad: puede haber una, varias o ninguna."""
+
+    novedad = models.ForeignKey(
+        Novedad,
+        verbose_name="novedad",
+        on_delete=models.CASCADE,
+        related_name="fotos",
+    )
+    imagen = models.ImageField(
+        "imagen",
+        upload_to=ruta_foto_novedad,
+        max_length=255,
+        validators=[validar_peso_imagen, validar_imagen_real],
+    )
+    descripcion = models.CharField("descripción", max_length=150, blank=True)
+    subida_en = models.DateTimeField("subida en", auto_now_add=True)
+    subido_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name="subida por",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+
+    class Meta:
+        verbose_name = "foto de novedad"
+        verbose_name_plural = "fotos de novedad"
+        ordering = ["novedad", "-subida_en", "-pk"]
+
+    def __str__(self):
+        return f"{self.novedad.vehiculo.placa} · {self.nombre_archivo}"
+
+    @property
+    def nombre_archivo(self) -> str:
+        return Path(self.imagen.name).name
 
