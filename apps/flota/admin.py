@@ -335,8 +335,12 @@ class NovedadAdmin(admin.ModelAdmin):
 class AutorizacionAdmin(admin.ModelAdmin):
     """Firmas de responsabilidad: justificación, hash, IP y fecha."""
 
-    list_display = ("novedad", "superadmin", "fecha", "ip")
+    list_display = ("novedad", "superadmin", "fecha", "expira_en", "vigente", "ip")
     list_filter = ("fecha",)
     search_fields = ("novedad__vehiculo__placa", "justificacion")
-    readonly_fields = ("hash_justificacion", "fecha", "ip")
+    readonly_fields = ("hash_justificacion", "fecha", "expira_en", "vigente", "ip")
     autocomplete_fields = ("novedad", "superadmin")
+
+    @admin.display(description="vigente", boolean=True)
+    def vigente(self, obj):
+        return obj.vigente

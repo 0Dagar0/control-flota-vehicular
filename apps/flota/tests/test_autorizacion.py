@@ -8,7 +8,7 @@ from django.core.exceptions import ValidationError
 from django.urls import reverse
 from django.utils import timezone
 
-from apps.flota.models import Autorizacion, Conductor, Novedad, Vehiculo
+from apps.flota.models import Autorizacion, Conductor, Configuracion, Novedad, Vehiculo
 from apps.usuarios.models import Usuario
 
 CLAVE = "ClaveSegura2026"
@@ -100,6 +100,44 @@ def test_el_hash_se_calcula_siempre_en_el_servidor(novedad_critica, superadmin):
     assert creada.hash_justificacion == hashlib.sha256(
         JUSTIFICACION.encode("utf-8")
     ).hexdigest()
+
+
+def test_expira_en_usa_los_minutos_configurados(novedad_critica, superadmin):
+    desde = timezone.now()
+
+    creada = Autorizacion.objects.create(
+        novedad=novedad_critica, superadmin=superadmin, justificacion=JUSTIFICACION
+    )
+
+    diferencia = creada.expira_en - desde
+    assert timedelta(minutes=14) <= diferencia <= timedelta(minutes=16)
+    assert creada.vigente is True
+
+
+def test_el_plazo_respeta_la_configuracion(novedad_critica, superadmin):
+    configuracion = Configuracion.obtener()
+    configuracion.minutos_autorizacion = 5
+    configuracion.save()
+    desde = timezone.now()
+
+    creada = Autorizacion.objects.create(
+        novedad=novedad_critica, superadmin=superadmin, justificacion=JUSTIFICACION
+    )
+
+    assert timedelta(minutes=4) <= creada.expira_en - desde <= timedelta(minutes=6)
+
+
+def test_vencida_no_cambia_el_bloqueo_del_vehiculo(
+    client, superadmin, novedad_critica, vehiculo
+):
+    autorizar(client, superadmin, novedad_critica)
+    creada = Autorizacion.objects.get(novedad=novedad_critica)
+
+    creada.expira_en = timezone.now() - timedelta(minutes=1)
+    creada.save(update_fields=["expira_en"])
+
+    assert creada.vigente is False
+    assert vehiculo.estado == Vehiculo.Estado.OPERATIVO
 
 
 def test_la_justificacion_debe_tener_entre_20_y_500_caracteres(novedad_critica):

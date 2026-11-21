@@ -25,7 +25,9 @@
 {% if novedad.autorizacion %}
   <div class="aviso aviso-error" style="border:3px solid #d93838; text-align:center">
     <strong>SELLO ROJO · SALIDA AUTORIZADA</strong><br>
-    {{ novedad.autorizacion.fecha|date:"d/m/Y H:i" }} · {{ novedad.autorizacion.superadmin }}
+    {{ novedad.autorizacion.fecha|date:"d/m/Y H:i" }} · {{ novedad.autorizacion.superadmin }}<br>
+    Válida hasta {{ novedad.autorizacion.expira_en|date:"d/m/Y H:i" }} ·
+    {% if novedad.autorizacion.vigente %}<strong>VIGENTE</strong>{% else %}<strong>VENCIDA</strong>{% endif %}
   </div>
 {% elif novedad.severidad == "critica" and novedad.estado != "VALIDADA" and user.es_superadmin %}
   <div class="tarjeta">

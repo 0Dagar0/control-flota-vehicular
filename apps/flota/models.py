@@ -17,7 +17,7 @@ ahora solo se calculan los que dependen de los documentos y de la baja.
 """
 
 import hashlib
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 from django.conf import settings
@@ -1106,6 +1106,7 @@ class Autorizacion(models.Model):
     )
     ip = models.CharField("dirección IP", max_length=45, blank=True)
     fecha = models.DateTimeField("fecha", auto_now_add=True)
+    expira_en = models.DateTimeField("vence en", null=True, blank=True)
 
     class Meta:
         verbose_name = "autorización de salida con falla"
@@ -1119,7 +1120,17 @@ class Autorizacion(models.Model):
         self.hash_justificacion = hashlib.sha256(
             self.justificacion.encode("utf-8")
         ).hexdigest()
+        if self.expira_en is None:
+            # R10: el plazo sale de Configuracion (15 minutos por defecto).
+            self.expira_en = timezone.now() + timedelta(
+                minutes=Configuracion.obtener().minutos_autorizacion
+            )
         super().save(*args, **kwargs)
+
+    @property
+    def vigente(self) -> bool:
+        """Indica si la autorización todavía está dentro del plazo (R10)."""
+        return self.expira_en is not None and timezone.now() <= self.expira_en
 
     def clean(self):
         super().clean()
