@@ -13,12 +13,20 @@ Reglas que se aplican aquí:
 
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.shortcuts import get_object_or_404, redirect
+from django.core.exceptions import ValidationError
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.views import View
 from django.views.generic import FormView, TemplateView
 
-from apps.flota.models import Asignacion, Servicio
+from apps.flota.models import (
+    Asignacion,
+    Inspeccion,
+    PlantillaInspeccion,
+    RespuestaItem,
+    Servicio,
+)
 
 from .forms import ServicioCerrarForm, ServicioIniciarForm
 
@@ -74,10 +82,16 @@ class MiServicioView(SoloConductorMixin, TemplateView):
             contexto["proximo_documento"] = (
                 vehiculo.documentos.order_by("vencimiento").first()
             )
+            inspeccion_aprobada = Inspeccion.aprobada_hoy(vehiculo)
+            contexto["inspeccion_aprobada"] = inspeccion_aprobada
+            contexto["url_inspeccion"] = reverse(
+                "inspeccion_rapida", args=[vehiculo.placa]
+            )
             contexto["puede_iniciar"] = (
                 servicio is None
                 and conductor.licencia_vigente
                 and not vehiculo.documentos_vencidos.exists()
+                and inspeccion_aprobada
             )
             if servicio:
                 contexto["motivo_bloqueo"] = (
@@ -93,6 +107,10 @@ class MiServicioView(SoloConductorMixin, TemplateView):
                 contexto["motivo_bloqueo"] = (
                     f"{vencido.get_tipo_display()} venció el "
                     f"{vencido.vencimiento:%d/%m/%Y}: el vehículo no puede salir."
+                )
+            elif not inspeccion_aprobada:
+                contexto["motivo_bloqueo"] = (
+                    "Haz la inspección rápida de hoy antes de iniciar el servicio."
                 )
         return contexto
 
@@ -160,6 +178,13 @@ class ServicioIniciarView(SoloConductorMixin, FormView):
                 self.request, "El vehículo tiene documentos vencidos: no puede salir."
             )
             return redirect("mi_servicio")
+        if not Inspeccion.aprobada_hoy(vehiculo):
+            # R3: la inspección rápida aprobada del día es obligatoria desde la v0.6.
+            messages.error(
+                self.request,
+                "Haz la inspección rápida de hoy antes de iniciar el servicio.",
+            )
+            return redirect("inspeccion_rapida", placa=vehiculo.placa)
 
         servicio = Servicio.objects.create(
             vehiculo=vehiculo,
@@ -238,4 +263,130 @@ class ServicioCerrarView(SoloConductorMixin, FormView):
                 self.request,
                 "Servicio cerrado con novedad. El administrador la revisará.",
             )
+        return redirect("mi_servicio")
+
+
+class InspeccionRapidaView(SoloConductorMixin, View):
+    """Inspección rápida del vehículo asignado (v0.6, contrato §5.1).
+
+    El conductor solo ve su propia placa: la ruta lleva la placa, pero se
+    comprueba contra su asignación activa. Los respuestas se guardan a medida
+    que se envían; la firma con el PIN cierra la inspección y calcula el bloqueo.
+    """
+
+    template_name = "servicio/inspeccion_rapida.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        conductor = conductor_de(request.user) if request.user.is_authenticated else None
+        asignacion = Asignacion.activa_de(conductor) if conductor else None
+        if asignacion is None or asignacion.vehiculo.placa != self.kwargs["placa"]:
+            if request.user.is_authenticated:
+                messages.error(request, "Ese vehículo no está asignado a tu ficha.")
+            return redirect("mi_servicio")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_contexto(self, request, errores=None):
+        conductor = conductor_de(request.user)
+        asignacion = Asignacion.activa_de(conductor)
+        vehiculo = asignacion.vehiculo
+        contexto = {
+            "seccion": "mi_servicio",
+            "conductor": conductor,
+            "asignacion": asignacion,
+            "vehiculo": vehiculo,
+            "estados": RespuestaItem.Estado.choices,
+            "errores": errores or [],
+        }
+        plantilla = (
+            PlantillaInspeccion.objects.filter(
+                activa=True, nivel=PlantillaInspeccion.Nivel.RAPIDA
+            )
+            .prefetch_related("items")
+            .first()
+        )
+        if plantilla is None or not plantilla.items.exists():
+            return contexto
+
+        inspeccion = (
+            Inspeccion.objects.filter(
+                vehiculo=vehiculo,
+                conductor=conductor,
+                estado=Inspeccion.Estado.EN_PROGRESO,
+                iniciado_en__date=timezone.localdate(),
+            )
+            .order_by("-pk")
+            .first()
+        )
+        if inspeccion is None:
+            inspeccion = Inspeccion.objects.create(
+                vehiculo=vehiculo,
+                conductor=conductor,
+                plantilla=plantilla,
+                km=vehiculo.km_actual,
+            )
+        respuestas = {r.item_id: r for r in inspeccion.respuestas.all()}
+        contexto.update(
+            {
+                "plantilla": plantilla,
+                "inspeccion": inspeccion,
+                "items": plantilla.items.all(),
+                "filas": [
+                    {"item": item, "respuesta": respuestas.get(item.pk)}
+                    for item in plantilla.items.all()
+                ],
+            }
+        )
+        return contexto
+
+    def get(self, request, *args, **kwargs):
+        contexto = self.get_contexto(request)
+        if contexto.get("plantilla") is None:
+            messages.error(request, "Todavía no hay una plantilla de inspección cargada.")
+            return redirect("mi_servicio")
+        return render(request, self.template_name, contexto)
+
+    def post(self, request, *args, **kwargs):
+        contexto = self.get_contexto(request)
+        inspeccion = contexto.get("inspeccion")
+        items = contexto.get("items", [])
+        if inspeccion is None:
+            messages.error(request, "No hay una plantilla de inspección cargada.")
+            return redirect("mi_servicio")
+
+        errores = []
+        estados_validos = {valor for valor, _ in RespuestaItem.Estado.choices}
+        for item in items:
+            estado = request.POST.get(f"estado-{item.pk}")
+            foto = request.FILES.get(f"foto-{item.pk}")
+            if estado not in estados_validos:
+                errores.append(f"{item.nombre}: elige un estado.")
+                continue
+            valores = {
+                "estado": estado,
+                "informe": request.POST.get(f"informe-{item.pk}", ""),
+            }
+            if foto:
+                valores["foto"] = foto
+            respuesta, _ = RespuestaItem.objects.update_or_create(
+                inspeccion=inspeccion, item=item, defaults=valores
+            )
+            try:
+                respuesta.full_clean()
+            except ValidationError as error:
+                errores.append(f"{item.nombre}: {error.messages[0]}")
+
+        if not errores:
+            try:
+                inspeccion.firmar(request.POST.get("firma_pin", ""))
+            except ValidationError as error:
+                errores.append(error.messages[0])
+
+        if errores:
+            contexto["errores"] = errores
+            return render(request, self.template_name, contexto)
+
+        messages.success(
+            request,
+            f"Inspección {inspeccion.resultado} registrada con {inspeccion.vehiculo.placa}.",
+        )
         return redirect("mi_servicio")

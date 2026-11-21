@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block titulo %}Inspección rápida{% endblock %}
+
+{% block contenido %}
+<div class="cabecera">
+  <div>
+    <h1>Inspección rápida</h1>
+    <p>
+      {{ vehiculo.placa }} · {{ vehiculo.marca }} {{ vehiculo.referencia }} ·
+      {{ vehiculo.km_actual }} km · {{ plantilla.nombre|default:"sin plantilla" }}
+    </p>
+  </div>
+</div>
+
+<div class="aviso ancho">
+  Revisa los {{ items|length }} ítems antes de salir. La foto es obligatoria cuando
+  marcas «Con novedad», y la firma confirma que revisaste el vehículo.
+</div>
+
+{% if errores %}
+  <div class="aviso aviso-error">
+    <strong>Revisa estos puntos:</strong>
+    <ul>
+      {% for error in errores %}<li>{{ error }}</li>{% endfor %}
+    </ul>
+  </div>
+{% endif %}
+
+{% if plantilla %}
+  <form method="post" enctype="multipart/form-data" novalidate>
+    {% csrf_token %}
+
+    {% for fila in filas %}
+      {% ifchanged fila.item.grupo %}
+        <h2>{{ fila.item.grupo }}</h2>
+      {% endifchanged %}
+
+      <div class="tarjeta">
+        <h3>
+          {{ fila.item.nombre }}
+          {% if fila.item.es_critico %}
+            <span class="insignia insignia-roja">Crítico</span>
+          {% endif %}
+        </h3>
+
+        <div class="campo">
+          <strong>Estado del ítem</strong>
+          {% for valor, etiqueta in estados %}
+            <label style="display:block; margin:6px 0">
+              <input type="radio" name="estado-{{ fila.item.pk }}" value="{{ valor }}"
+                     {% if fila.respuesta.estado == valor %}checked{% endif %}>
+              {{ etiqueta }}
+            </label>
+          {% endfor %}
+        </div>
+
+        <div class="campo">
+          <label for="foto-{{ fila.item.pk }}">Foto del ítem</label>
+          <input id="foto-{{ fila.item.pk }}" type="file"
+                 name="foto-{{ fila.item.pk }}" accept="image/*">
+          {% if fila.respuesta.foto %}
+            <span class="ayuda">Ya hay una foto guardada; deja este campo vacío para conservarla.</span>
+          {% endif %}
+        </div>
+
+        <div class="campo">
+          <label for="informe-{{ fila.item.pk }}">Informe</label>
+          <textarea id="informe-{{ fila.item.pk }}" name="informe-{{ fila.item.pk }}"
+                    rows="2">{{ fila.respuesta.informe|default:"" }}</textarea>
+        </div>
+      </div>
+    {% endfor %}
+
+    <div class="tarjeta">
+      <h2>Firma de la inspección</h2>
+      <div class="campo">
+        <label for="firma_pin">Tu contraseña</label>
+        <input id="firma_pin" type="password" name="firma_pin"
+               autocomplete="current-password">
+        <span class="ayuda">
+          Tu contraseña confirma que revisaste el vehículo. Nunca se guarda.
+        </span>
+      </div>
+      <div class="acciones" style="margin-top:16px">
+        <button type="submit" class="boton boton-grande">Firmar inspección</button>
+        <a class="enlace" href="{% url 'mi_servicio' %}">Volver a mi servicio</a>
+      </div>
+    </div>
+  </form>
+{% else %}
+  <div class="aviso aviso-error">
+    Todavía no hay una plantilla de inspección cargada. Pídele al administrador
+    que la cargue antes de iniciar el servicio.
+  </div>
+  <div class="acciones" style="margin-top:16px">
+    <a class="boton boton-grande" href="{% url 'mi_servicio' %}">Volver a mi servicio</a>
+  </div>
+{% endif %}
+{% endblock %}

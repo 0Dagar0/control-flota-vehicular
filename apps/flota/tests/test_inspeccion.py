@@ -11,6 +11,7 @@ from io import BytesIO
 import pytest
 from django.core.exceptions import ValidationError
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.management import call_command
 from django.db import IntegrityError
 from django.utils import timezone
 from PIL import Image
@@ -121,6 +122,16 @@ def test_plantilla_rapida_tiene_siete_items_en_cuatro_grupos(plantilla):
         "Frenos y llantas",
         "Seguridad a bordo",
     }
+    assert plantilla.items.filter(es_critico=True).count() == 5
+
+
+def test_el_comando_carga_la_plantilla_sin_duplicar(db):
+    call_command("cargar_plantilla_inspeccion")
+    call_command("cargar_plantilla_inspeccion")
+
+    assert PlantillaInspeccion.objects.filter(nombre="Rápida").count() == 1
+    plantilla = PlantillaInspeccion.objects.get(nombre="Rápida")
+    assert plantilla.items.count() == 7
     assert plantilla.items.filter(es_critico=True).count() == 5
 
 

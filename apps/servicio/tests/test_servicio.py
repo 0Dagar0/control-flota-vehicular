@@ -6,7 +6,17 @@ import pytest
 from django.urls import reverse
 from django.utils import timezone
 
-from apps.flota.models import Asignacion, Conductor, Documento, Servicio, Vehiculo
+from apps.flota.models import (
+    Asignacion,
+    Conductor,
+    Documento,
+    Inspeccion,
+    ItemInspeccion,
+    PlantillaInspeccion,
+    RespuestaItem,
+    Servicio,
+    Vehiculo,
+)
 from apps.usuarios.models import Usuario
 
 CLAVE = "ClaveSegura2026"
@@ -65,8 +75,39 @@ def documento_vigente(vehiculo):
     )
 
 
-def iniciar(client, conductor, **datos):
+def inspeccion_aprobada(conductor, vehiculo):
+    """Deja una inspección firmada de hoy para que R3 no bloquee las pruebas."""
+    plantilla, _ = PlantillaInspeccion.objects.get_or_create(
+        nombre="Rápida", defaults={"nivel": PlantillaInspeccion.Nivel.RAPIDA}
+    )
+    if not plantilla.items.exists():
+        ItemInspeccion.objects.create(
+            plantilla=plantilla,
+            grupo="Frenos y llantas",
+            nombre="Frenos",
+            orden=1,
+        )
+    inspeccion = Inspeccion.objects.create(
+        vehiculo=vehiculo,
+        conductor=conductor,
+        plantilla=plantilla,
+        km=vehiculo.km_actual,
+    )
+    RespuestaItem.objects.create(
+        inspeccion=inspeccion,
+        item=plantilla.items.first(),
+        estado=RespuestaItem.Estado.BUEN_ESTADO,
+    )
+    inspeccion.firmar(CLAVE)
+    return inspeccion
+
+
+def iniciar(client, conductor, inspeccion=True, **datos):
     client.force_login(conductor.usuario)
+    if inspeccion:
+        asignacion = Asignacion.activa_de(conductor)
+        if asignacion:
+            inspeccion_aprobada(conductor, asignacion.vehiculo)
     return client.post(
         reverse("servicio:iniciar"),
         {"km_inicial": 1200, "ruta": "Ruta norte: bodega → Soacha", **datos},
@@ -182,6 +223,15 @@ def test_sin_vehiculo_asignado_no_se_puede_iniciar(client, conductor):
 
     assert respuesta.status_code == 302
     assert respuesta["Location"] == reverse("mi_servicio")
+    assert Servicio.objects.count() == 0
+
+
+def test_no_se_inicia_sin_inspeccion_aprobada_del_dia(client, conductor, asignacion):
+    """R3: sin inspección aprobada de hoy no se inicia el servicio."""
+    respuesta = iniciar(client, conductor, inspeccion=False)
+
+    assert respuesta.status_code == 302
+    assert respuesta["Location"] == reverse("inspeccion_rapida", args=["ABC123"])
     assert Servicio.objects.count() == 0
 
 

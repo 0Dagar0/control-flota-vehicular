@@ -55,6 +55,12 @@
         <strong>{{ vehiculo.estado_etiqueta }}</strong>
       </div>
       <div>
+        <span>Inspección de hoy</span>
+        <strong>
+          {% if inspeccion_aprobada %}Aprobada{% else %}Pendiente{% endif %}
+        </strong>
+      </div>
+      <div>
         <span>Próximo vencimiento</span>
         <strong>
           {% if proximo_documento %}
@@ -114,6 +120,11 @@
         <strong>No puedes iniciar servicio.</strong>
         {{ motivo_bloqueo|default:"Revisa la documentación del vehículo y tu licencia." }}
       </div>
+      {% if not inspeccion_aprobada and not servicio and conductor.licencia_vigente and not documentos_vencidos %}
+        <p style="margin-bottom:16px">
+          <a class="boton boton-grande" href="{{ url_inspeccion }}">Hacer inspección rápida</a>
+        </p>
+      {% endif %}
       {# El botón se deshabilita, no se oculta: así se entiende que la acción existe. #}
       <button class="boton boton-grande" type="button" disabled aria-disabled="true">
         Iniciar servicio

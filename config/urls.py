@@ -5,7 +5,7 @@ from django.urls import include, path
 
 from apps.flota.views import AlertasView
 from apps.maestros import views as maestros
-from apps.servicio.views import MiServicioView
+from apps.servicio.views import InspeccionRapidaView, MiServicioView
 from config.views import estado, inicio
 
 urlpatterns = [
@@ -15,6 +15,11 @@ urlpatterns = [
     # Capa web del contrato (§5.1 a §5.3).
     path("conductor/", MiServicioView.as_view(), name="mi_servicio"),
     path("servicio/", include("apps.servicio.urls")),
+    path(
+        "inspeccion/rapida/<str:placa>/",
+        InspeccionRapidaView.as_view(),
+        name="inspeccion_rapida",
+    ),
     path("vehiculos/", include("apps.flota.urls")),
     path("documentos/", include("apps.flota.urls_documentos")),
     path("conductores/", maestros.ConductorListaView.as_view(), name="conductores"),
