@@ -8,6 +8,8 @@ Reglas del proyecto que se aplican aquí (``docs/DOCUMENTO_MAESTRO.md``, secció
   registrarse sin él y queda «pendiente» hasta que se suba.
 - **R20** la baja de un conductor no borra nada: marca fechas y motivo.
 - **R21** la licencia vencida inhabilita al **conductor**, no al vehículo.
+- **R3/R5/R6/R7** (v0.6) la inspección se firma con la contraseña del conductor, exige
+  foto en los ítems con novedad y bloquea si un ítem crítico tiene novedad.
 
 Los estados ``EN_SERVICIO``, ``BLOQUEADO_NOVEDAD`` y ``EN_MANTENIMIENTO`` se
 activarán en las versiones que crean servicios, novedades y mantenimientos; por
@@ -18,6 +20,7 @@ from datetime import date
 from pathlib import Path
 
 from django.conf import settings
+from django.contrib.auth.hashers import check_password
 from django.core.exceptions import ValidationError
 from django.core.validators import RegexValidator
 from django.db import models
@@ -143,11 +146,16 @@ class Vehiculo(models.Model):
 
     @property
     def estado(self) -> str:
-        """Estado calculado (R11). Los demás estados llegan con sus versiones."""
+        """Estado calculado (R11 y, desde la v0.6, bloqueo por inspección crítica)."""
         if not self.activo:
             return self.Estado.FUERA_DE_SERVICIO
         if self.documentos_vencidos.exists():
             return self.Estado.BLOQUEADO_DOCUMENTO
+        # R7: una inspección firmada hoy con novedad crítica bloquea el vehículo.
+        if self.inspecciones.filter(
+            resultado="bloqueada", finalizado_en__date=timezone.localdate()
+        ).exists():
+            return self.Estado.BLOQUEADO_NOVEDAD
         return self.Estado.OPERATIVO
 
     @property
@@ -603,4 +611,236 @@ class Servicio(models.Model):
     @classmethod
     def en_curso_de(cls, conductor: Conductor) -> "Servicio | None":
         return cls.objects.filter(conductor=conductor, cerrado_en__isnull=True).first()
+
+
+def ruta_foto_inspeccion(instancia: "RespuestaItem", nombre_original: str) -> str:
+    """Ruta de la foto de un ítem: ``fotos/inspecciones/2026/11/ABC123-frenos.png``."""
+    hoy = timezone.localdate()
+    extension = Path(nombre_original).suffix.lower() or ".jpg"
+    nombre = instancia.item.nombre.lower().replace(" ", "-")[:40]
+    placa = instancia.inspeccion.vehiculo.placa
+    return f"fotos/inspecciones/{hoy:%Y/%m}/{placa}-{nombre}{extension}"
+
+
+class PlantillaInspeccion(models.Model):
+    """Plantilla de ítems: «rápida» (diaria) o «profunda» (semanal)."""
+
+    class Nivel(models.TextChoices):
+        RAPIDA = "rapida", "Rápida"
+        PROFUNDA = "profunda", "Profunda"
+
+    nombre = models.CharField("nombre", max_length=80)
+    nivel = models.CharField(
+        "nivel", max_length=10, choices=Nivel.choices, default=Nivel.RAPIDA
+    )
+    activa = models.BooleanField("activa", default=True)
+
+    creado_en = models.DateTimeField("creado en", auto_now_add=True)
+    actualizado_en = models.DateTimeField("actualizado en", auto_now=True)
+
+    class Meta:
+        verbose_name = "plantilla de inspección"
+        verbose_name_plural = "plantillas de inspección"
+        ordering = ["nivel", "nombre"]
+
+    def __str__(self):
+        return f"{self.nombre} ({self.get_nivel_display()})"
+
+
+class ItemInspeccion(models.Model):
+    """Ítem de una plantilla. Los críticos detectan novedades que bloquean (R7)."""
+
+    plantilla = models.ForeignKey(
+        PlantillaInspeccion,
+        verbose_name="plantilla",
+        on_delete=models.CASCADE,
+        related_name="items",
+    )
+    grupo = models.CharField("grupo", max_length=60)
+    nombre = models.CharField("nombre", max_length=120)
+    es_critico = models.BooleanField("crítico", default=False)
+    requiere_foto = models.BooleanField("requiere foto", default=False)
+    orden = models.PositiveSmallIntegerField("orden", default=0)
+
+    class Meta:
+        verbose_name = "ítem de inspección"
+        verbose_name_plural = "ítems de inspección"
+        ordering = ["orden", "pk"]
+
+    def __str__(self):
+        return f"{self.grupo} · {self.nombre}"
+
+
+class Inspeccion(models.Model):
+    """Inspección diaria, firmada con la contraseña del conductor (R6).
+
+    El PIN nunca se guarda: ``firmar()`` solo verifica el hash existente del
+    usuario y registra la hora de la firma.
+    """
+
+    class Estado(models.TextChoices):
+        EN_PROGRESO = "en_progreso", "En progreso"
+        FINALIZADA = "finalizada", "Finalizada"
+
+    class Resultado(models.TextChoices):
+        APROBADA = "aprobada", "Aprobada"
+        BLOQUEADA = "bloqueada", "Bloqueada"
+
+    vehiculo = models.ForeignKey(
+        Vehiculo,
+        verbose_name="vehículo",
+        on_delete=models.PROTECT,
+        related_name="inspecciones",
+    )
+    conductor = models.ForeignKey(
+        Conductor,
+        verbose_name="conductor",
+        on_delete=models.PROTECT,
+        related_name="inspecciones",
+    )
+    plantilla = models.ForeignKey(
+        PlantillaInspeccion,
+        verbose_name="plantilla",
+        on_delete=models.PROTECT,
+        related_name="inspecciones",
+    )
+    estado = models.CharField(
+        "estado", max_length=12, choices=Estado.choices, default=Estado.EN_PROGRESO
+    )
+    km = models.PositiveIntegerField("kilometraje actual")
+    iniciado_en = models.DateTimeField("iniciado en", auto_now_add=True)
+    finalizado_en = models.DateTimeField("finalizado en", null=True, blank=True)
+    duracion = models.DurationField("duración", null=True, blank=True)
+    resultado = models.CharField(
+        "resultado", max_length=10, choices=Resultado.choices, blank=True
+    )
+    firma_en = models.DateTimeField("firmada en", null=True, blank=True)
+    firmada_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name="firmada por",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    creado_en = models.DateTimeField("creado en", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "inspección"
+        verbose_name_plural = "inspecciones"
+        ordering = ["-iniciado_en", "-pk"]
+
+    def __str__(self):
+        return f"{self.vehiculo.placa} · {self.conductor} · {self.iniciado_en:%d/%m/%Y}"
+
+    @property
+    def finalizada(self) -> bool:
+        return self.estado == self.Estado.FINALIZADA
+
+    def calcular_resultado(self) -> str:
+        """R7: una novedad en un ítem crítico bloquea; si no, queda aprobada."""
+        critico_con_novedad = self.respuestas.filter(
+            estado=RespuestaItem.Estado.CON_NOVEDAD, item__es_critico=True
+        ).exists()
+        if critico_con_novedad:
+            return self.Resultado.BLOQUEADA
+        return self.Resultado.APROBADA
+
+    def firmar(self, pin: str, usuario=None) -> None:
+        """Cierra la inspección con la contraseña del conductor (R6).
+
+        No se puede firmar si faltan respuestas, hay ítems «sin revisar» o el
+        PIN no coincide con el hash del usuario. La contraseña nunca se guarda.
+        """
+        if self.finalizada:
+            raise ValidationError("Esta inspección ya está finalizada.")
+        if not self.respuestas.exists():
+            raise ValidationError("La inspección no tiene respuestas registradas.")
+        if self.respuestas.filter(estado=RespuestaItem.Estado.SIN_REVISAR).exists():
+            raise ValidationError("Hay ítems sin revisar; no se puede firmar la inspección.")
+        if not check_password(pin, self.conductor.usuario.password):
+            raise ValidationError({"firma_pin": "La contraseña del conductor no es correcta."})
+
+        ahora = timezone.now()
+        self.estado = self.Estado.FINALIZADA
+        self.resultado = self.calcular_resultado()
+        self.firma_en = ahora
+        self.finalizado_en = ahora
+        self.duracion = ahora - self.iniciado_en
+        if usuario is not None:
+            self.firmada_por = usuario
+        self.save(
+            update_fields=[
+                "estado",
+                "resultado",
+                "firma_en",
+                "finalizado_en",
+                "duracion",
+                "firmada_por",
+            ]
+        )
+
+    @classmethod
+    def aprobada_hoy(cls, vehiculo: Vehiculo) -> bool:
+        """R3: ¿el vehículo tiene una inspección aprobada finalizada hoy?"""
+        return cls.objects.filter(
+            vehiculo=vehiculo,
+            resultado=cls.Resultado.APROBADA,
+            finalizado_en__date=timezone.localdate(),
+        ).exists()
+
+
+class RespuestaItem(models.Model):
+    """Respuesta a un ítem de la inspección (R5: foto si hay novedad)."""
+
+    class Estado(models.TextChoices):
+        BUEN_ESTADO = "buen_estado", "Buen estado"
+        CON_NOVEDAD = "con_novedad", "Con novedad"
+        SIN_REVISAR = "sin_revisar", "Sin revisar"
+
+    inspeccion = models.ForeignKey(
+        Inspeccion,
+        verbose_name="inspección",
+        on_delete=models.CASCADE,
+        related_name="respuestas",
+    )
+    item = models.ForeignKey(
+        ItemInspeccion,
+        verbose_name="ítem",
+        on_delete=models.PROTECT,
+        related_name="respuestas",
+    )
+    estado = models.CharField(
+        "estado", max_length=12, choices=Estado.choices, default=Estado.SIN_REVISAR
+    )
+    informe = models.TextField("informe", blank=True)
+    foto = models.ImageField(
+        "foto",
+        upload_to=ruta_foto_inspeccion,
+        max_length=255,
+        blank=True,
+        validators=[validar_peso_imagen, validar_imagen_real],
+    )
+    registrado_en = models.DateTimeField("registrado en", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "respuesta de ítem"
+        verbose_name_plural = "respuestas de ítem"
+        ordering = ["item__orden", "pk"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["inspeccion", "item"], name="unico_item_por_inspeccion"
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.item.nombre} · {self.get_estado_display()}"
+
+    def clean(self):
+        super().clean()
+        # R5: la foto es obligatoria cuando el ítem tiene una novedad.
+        if self.estado == self.Estado.CON_NOVEDAD and not self.foto:
+            raise ValidationError(
+                {"foto": "La foto es obligatoria cuando el ítem tiene una novedad."}
+            )
 

@@ -8,6 +8,10 @@ from .models import (
     Configuracion,
     Documento,
     FotoVehiculo,
+    Inspeccion,
+    ItemInspeccion,
+    PlantillaInspeccion,
+    RespuestaItem,
     Servicio,
     Vehiculo,
 )
@@ -231,3 +235,53 @@ class ConfiguracionAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+
+class ItemInspeccionInline(admin.TabularInline):
+    """Ítems de una plantilla, en el orden en que los ve el conductor."""
+
+    model = ItemInspeccion
+    extra = 0
+    fields = ("grupo", "nombre", "es_critico", "requiere_foto", "orden")
+
+
+class RespuestaItemInline(admin.TabularInline):
+    """Respuestas de una inspección; el PIN nunca aparece aquí."""
+
+    model = RespuestaItem
+    extra = 0
+    fields = ("item", "estado", "informe", "foto")
+    readonly_fields = ("item",)
+
+
+@admin.register(PlantillaInspeccion)
+class PlantillaInspeccionAdmin(admin.ModelAdmin):
+    list_display = ("nombre", "nivel", "activa", "total_items")
+    list_filter = ("nivel", "activa")
+    search_fields = ("nombre",)
+    inlines = (ItemInspeccionInline,)
+
+    @admin.display(description="ítems")
+    def total_items(self, obj):
+        return obj.items.count()
+
+
+@admin.register(Inspeccion)
+class InspeccionAdmin(admin.ModelAdmin):
+    """Bandeja de inspecciones: resultado y firma, nunca la contraseña."""
+
+    list_display = (
+        "vehiculo",
+        "conductor",
+        "plantilla",
+        "iniciado_en",
+        "estado",
+        "resultado",
+        "firma_en",
+    )
+    list_filter = ("estado", "resultado", "plantilla__nivel")
+    search_fields = ("vehiculo__placa", "conductor__usuario__documento")
+    autocomplete_fields = ("vehiculo", "conductor", "plantilla")
+    readonly_fields = ("iniciado_en", "finalizado_en", "duracion", "firma_en", "firmada_por")
+    inlines = (RespuestaItemInline,)
+    date_hierarchy = "iniciado_en"
