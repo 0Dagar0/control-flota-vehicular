@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block titulo %}Autorizar salida con falla{% endblock %}
+
+{% block contenido %}
+<div class="cabecera">
+  <div>
+    <h1>Autorizar salida con falla</h1>
+    <p>
+      {{ novedad.vehiculo.placa }} · {{ novedad.get_severidad_display }} · {{ novedad.estado }}
+    </p>
+  </div>
+</div>
+
+<div class="aviso aviso-error">
+  <strong>Firma de responsabilidad.</strong>
+  Estás autorizando que el vehículo salga con una falla crítica. La justificación queda guardada
+  con un hash SHA-256 calculado en el servidor y tu contraseña confirma quién autoriza.
+</div>
+
+<div class="tarjeta">
+  <h2>Novedad</h2>
+  <div class="resumen">
+    <div><span>Vehículo</span><strong>{{ novedad.vehiculo.placa }}</strong></div>
+    <div><span>Conductor</span><strong>{{ novedad.conductor|default:"Sin asignar" }}</strong></div>
+    <div><span>Severidad</span><strong>{{ novedad.get_severidad_display }}</strong></div>
+    <div><span>Estado actual</span><strong>{{ novedad.estado }}</strong></div>
+  </div>
+  <p style="margin-top:16px">{{ novedad.descripcion }}</p>
+</div>
+
+<div class="tarjeta">
+  <h2>Autorización</h2>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+      <div class="aviso aviso-error">{{ form.non_field_errors }}</div>
+    {% endif %}
+    {% for campo in form %}
+      <div class="campo">
+        <label for="{{ campo.id_for_label }}">
+          {{ campo.label }}{% if campo.field.required %} <span class="obligatorio">*</span>{% endif %}
+        </label>
+        {{ campo }}
+        {% for error in campo.errors %}<span class="error">{{ error }}</span>{% endfor %}
+      </div>
+    {% endfor %}
+    <div class="acciones" style="margin-top:16px">
+      <button type="submit" class="boton boton-grande">Firmar autorización</button>
+      <a class="enlace" href="{% url 'novedad_gestion' novedad.pk %}">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

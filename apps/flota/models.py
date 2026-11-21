@@ -16,6 +16,7 @@ activarán en las versiones que crean servicios, novedades y mantenimientos; por
 ahora solo se calculan los que dependen de los documentos y de la baja.
 """
 
+import hashlib
 from datetime import date
 from pathlib import Path
 
@@ -1075,4 +1076,56 @@ class FotoNovedad(models.Model):
     @property
     def nombre_archivo(self) -> str:
         return Path(self.imagen.name).name
+
+
+class Autorizacion(models.Model):
+    """Firma de responsabilidad para autorizar una salida con falla (R8).
+
+    El ``hash_justificacion`` se calcula siempre en el servidor; el cliente no
+    puede enviarlo. La contraseña del superadmin se verifica en la vista y
+    **nunca se guarda**.
+    """
+
+    novedad = models.OneToOneField(
+        Novedad,
+        verbose_name="novedad",
+        on_delete=models.PROTECT,
+        related_name="autorizacion",
+    )
+    superadmin = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        verbose_name="superadministrador",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    justificacion = models.TextField("justificación")
+    hash_justificacion = models.CharField(
+        "hash de la justificación", max_length=64, editable=False
+    )
+    ip = models.CharField("dirección IP", max_length=45, blank=True)
+    fecha = models.DateTimeField("fecha", auto_now_add=True)
+
+    class Meta:
+        verbose_name = "autorización de salida con falla"
+        verbose_name_plural = "autorizaciones de salida con falla"
+        ordering = ["-fecha", "-pk"]
+
+    def __str__(self):
+        return f"{self.novedad.vehiculo.placa} · {self.fecha:%d/%m/%Y %H:%M}"
+
+    def save(self, *args, **kwargs):
+        self.hash_justificacion = hashlib.sha256(
+            self.justificacion.encode("utf-8")
+        ).hexdigest()
+        super().save(*args, **kwargs)
+
+    def clean(self):
+        super().clean()
+        longitud = len(self.justificacion.strip())
+        if not 20 <= longitud <= 500:
+            raise ValidationError(
+                {"justificacion": "La justificación debe tener entre 20 y 500 caracteres."}
+            )
 

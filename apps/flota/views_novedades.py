@@ -6,14 +6,16 @@ administrador y el superadministrador gestionan la bandeja y los estados.
 
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.db import transaction
 from django.db.models import Case, IntegerField, Q, Value, When
+from django.http import HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.generic import ListView, TemplateView
 
 from apps.servicio.views import SoloConductorMixin, conductor_de
 
-from .forms_novedades import NovedadGestionForm, NovedadReportarForm
-from .models import Asignacion, FotoNovedad, Novedad
+from .forms_novedades import AutorizacionForm, NovedadGestionForm, NovedadReportarForm
+from .models import Asignacion, Autorizacion, FotoNovedad, Novedad
 
 
 class NovedadNuevaView(SoloConductorMixin, TemplateView):
@@ -198,3 +200,78 @@ class MisNovedadesView(SoloConductorMixin, ListView):
         contexto = super().get_context_data(**kwargs)
         contexto["seccion"] = "novedades"
         return contexto
+
+
+class AutorizarSalidaView(TemplateView):
+    """Firma de responsabilidad del superadmin para una salida con falla (R8)."""
+
+    template_name = "novedades/autorizar.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated and not request.user.es_superadmin:
+            raise PermissionDenied("Solo el superadministrador puede autorizar salidas.")
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_novedad(self):
+        return get_object_or_404(
+            Novedad.objects.select_related("vehiculo"), pk=self.kwargs["pk"]
+        )
+
+    def contexto(self, novedad, form=None):
+        return {
+            "seccion": "novedades",
+            "novedad": novedad,
+            "form": form or AutorizacionForm(),
+        }
+
+    def get(self, request, *args, **kwargs):
+        novedad = self.get_novedad()
+        if hasattr(novedad, "autorizacion"):
+            messages.info(request, "Esta novedad ya está autorizada.")
+            return redirect("novedad_gestion", novedad.pk)
+        return render(request, self.template_name, self.contexto(novedad))
+
+    def post(self, request, *args, **kwargs):
+        novedad = self.get_novedad()
+        if hasattr(novedad, "autorizacion"):
+            return HttpResponseBadRequest("Esta novedad ya está autorizada.")
+
+        # El contrato §5.3 exige 400 si falta cualquiera de los tres campos.
+        requeridos = ("justificacion", "password", "acepta_responsabilidad")
+        if any(not request.POST.get(campo) for campo in requeridos):
+            return HttpResponseBadRequest(
+                "Faltan campos obligatorios: justificación, contraseña y aceptación."
+            )
+
+        form = AutorizacionForm(request.POST)
+        if not form.is_valid():
+            return render(request, self.template_name, self.contexto(novedad, form))
+        if not request.user.check_password(form.cleaned_data["password"]):
+            form.add_error("password", "La contraseña no es correcta.")
+            return render(request, self.template_name, self.contexto(novedad, form))
+
+        pasos = {
+            Novedad.Estado.ABIERTA: Novedad.Estado.EN_PROCESO,
+            Novedad.Estado.EN_PROCESO: Novedad.Estado.RESUELTA,
+            Novedad.Estado.RESUELTA: Novedad.Estado.VALIDADA,
+        }
+        if novedad.estado not in pasos:
+            form.add_error(None, "Esta novedad no puede autorizarse en su estado actual.")
+            return render(request, self.template_name, self.contexto(novedad, form))
+
+        with transaction.atomic():
+            Autorizacion.objects.create(
+                novedad=novedad,
+                superadmin=request.user,
+                justificacion=form.cleaned_data["justificacion"],
+                ip=request.META.get("REMOTE_ADDR", ""),
+            )
+            while novedad.estado != Novedad.Estado.VALIDADA:
+                novedad.cambiar_estado(
+                    pasos[novedad.estado],
+                    usuario=request.user,
+                    descripcion="Autorización de salida con falla (R8)",
+                )
+
+        messages.success(request, "Salida autorizada. El vehículo quedó desbloqueado.")
+        return redirect("novedad_gestion", novedad.pk)

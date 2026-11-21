@@ -42,3 +42,26 @@ class NovedadGestionForm(forms.Form):
         self.fields["estado"].choices = [
             (estado, Novedad.Estado(estado).label) for estado in transiciones
         ]
+
+
+class AutorizacionForm(forms.Form):
+    """Firma de responsabilidad del superadmin (contrato §5.3 y regla R8)."""
+
+    justificacion = forms.CharField(
+        label="justificación",
+        widget=forms.Textarea(attrs={"rows": 4}),
+    )
+    password = forms.CharField(
+        label="tu contraseña",
+        widget=forms.PasswordInput(attrs={"autocomplete": "current-password"}),
+    )
+    acepta_responsabilidad = forms.BooleanField(
+        label="Acepto la responsabilidad de autorizar esta salida",
+        required=True,
+    )
+
+    def clean_justificacion(self):
+        valor = self.cleaned_data["justificacion"].strip()
+        if not 20 <= len(valor) <= 500:
+            raise forms.ValidationError("La justificación debe tener entre 20 y 500 caracteres.")
+        return valor

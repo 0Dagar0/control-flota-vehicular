@@ -22,6 +22,23 @@
   <p style="margin-top:16px">{{ novedad.descripcion }}</p>
 </div>
 
+{% if novedad.autorizacion %}
+  <div class="aviso aviso-error" style="border:3px solid #d93838; text-align:center">
+    <strong>SELLO ROJO · SALIDA AUTORIZADA</strong><br>
+    {{ novedad.autorizacion.fecha|date:"d/m/Y H:i" }} · {{ novedad.autorizacion.superadmin }}
+  </div>
+{% elif novedad.severidad == "critica" and novedad.estado != "VALIDADA" and user.es_superadmin %}
+  <div class="tarjeta">
+    <h2>Autorización de salida con falla</h2>
+    <p>El superadministrador puede autorizar la salida con su firma de responsabilidad (R8).</p>
+    <div class="acciones" style="margin-top:16px">
+      <a class="boton boton-grande" href="{% url 'novedad_autorizar' novedad.pk %}">
+        Autorizar salida con falla
+      </a>
+    </div>
+  </div>
+{% endif %}
+
 {% if fotos %}
   <div class="tarjeta">
     <h2>Fotos de la novedad</h2>

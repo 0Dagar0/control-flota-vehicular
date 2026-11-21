@@ -5,6 +5,7 @@ from django.urls import include, path
 
 from apps.flota.views import AlertasView
 from apps.flota.views_novedades import (
+    AutorizarSalidaView,
     MisNovedadesView,
     NovedadGestionView,
     NovedadListaView,
@@ -37,6 +38,11 @@ urlpatterns = [
         "novedades/<int:pk>/gestion/",
         NovedadGestionView.as_view(),
         name="novedad_gestion",
+    ),
+    path(
+        "novedades/<int:pk>/autorizar/",
+        AutorizarSalidaView.as_view(),
+        name="novedad_autorizar",
     ),
     path("mis-novedades/", MisNovedadesView.as_view(), name="mis_novedades"),
     path("maestros/", include("apps.maestros.urls")),

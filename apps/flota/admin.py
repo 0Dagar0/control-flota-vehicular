@@ -4,6 +4,7 @@ from django.contrib import admin
 
 from .models import (
     Asignacion,
+    Autorizacion,
     Conductor,
     Configuracion,
     Documento,
@@ -328,3 +329,14 @@ class NovedadAdmin(admin.ModelAdmin):
     @admin.display(description="bloquea el vehículo", boolean=True)
     def bloquea_vehiculo(self, obj):
         return obj.bloquea_vehiculo
+
+
+@admin.register(Autorizacion)
+class AutorizacionAdmin(admin.ModelAdmin):
+    """Firmas de responsabilidad: justificación, hash, IP y fecha."""
+
+    list_display = ("novedad", "superadmin", "fecha", "ip")
+    list_filter = ("fecha",)
+    search_fields = ("novedad__vehiculo__placa", "justificacion")
+    readonly_fields = ("hash_justificacion", "fecha", "ip")
+    autocomplete_fields = ("novedad", "superadmin")
