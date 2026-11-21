@@ -10,13 +10,23 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import PermissionDenied
 from django.db.models import Count, Exists, OuterRef, Q
+from django.db.models.functions import Lower
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
 from django.views.generic import DetailView, ListView, TemplateView
 
 from .forms_documentos import DocumentoRenovarForm
-from .models import Asignacion, Conductor, Documento, FotoVehiculo, Novedad, Servicio, Vehiculo
+from .models import (
+    Asignacion,
+    Conductor,
+    Documento,
+    FotoVehiculo,
+    Inspeccion,
+    Novedad,
+    Servicio,
+    Vehiculo,
+)
 
 
 class AccesoFlotaMixin(LoginRequiredMixin):
@@ -132,6 +142,84 @@ class DocumentoRenovarView(AccesoFlotaMixin, TemplateView):
             )
             return redirect("documentos:lista")
         return render(request, self.template_name, self.contexto(documento, form))
+
+
+class PanelView(AccesoFlotaMixin, TemplateView):
+    """Panel de indicadores: cumplimiento, bloqueos y fallas repetidas (v0.10)."""
+
+    template_name = "flota/panel.html"
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        vehiculos = list(Vehiculo.objects.all())
+        bloqueados = [
+            vehiculo
+            for vehiculo in vehiculos
+            if vehiculo.estado
+            in (Vehiculo.Estado.BLOQUEADO_DOCUMENTO, Vehiculo.Estado.BLOQUEADO_NOVEDAD)
+        ]
+        fallas = (
+            Novedad.objects.annotate(descripcion_normal=Lower("descripcion"))
+            .values("vehiculo__placa", "descripcion_normal")
+            .annotate(total=Count("pk"))
+            .filter(total__gt=1)
+            .order_by("-total")[:8]
+        )
+        contexto.update(
+            {
+                "seccion": "panel",
+                "vehiculos": vehiculos,
+                "total_vehiculos": len(vehiculos),
+                "bloqueados": bloqueados,
+                "total_bloqueados": len(bloqueados),
+                "novedades_abiertas": Novedad.objects.filter(
+                    estado=Novedad.Estado.ABIERTA
+                ).count(),
+                "cumplimiento_promedio": (
+                    round(
+                        sum(v.cumplimiento_documental for v in vehiculos) / len(vehiculos)
+                    )
+                    if vehiculos
+                    else 0
+                ),
+                "fallas_repetidas": fallas,
+                "inspecciones_hoy": Inspeccion.objects.filter(
+                    iniciado_en__date=timezone.localdate()
+                ).count(),
+            }
+        )
+        return contexto
+
+
+class HojaVida360View(AccesoFlotaMixin, DetailView):
+    """Vista 360° de un vehículo: documentos, inspecciones, novedades y más (v0.10)."""
+
+    model = Vehiculo
+    template_name = "flota/hoja_vida_360.html"
+    context_object_name = "vehiculo"
+    slug_field = "placa"
+    slug_url_kwarg = "placa"
+
+    def get_queryset(self):
+        return Vehiculo.objects.prefetch_related("documentos", "fotos")
+
+    def get_context_data(self, **kwargs):
+        contexto = super().get_context_data(**kwargs)
+        vehiculo = self.object
+        contexto.update(
+            {
+                "seccion": "vehiculos",
+                "documentos": vehiculo.documentos.all(),
+                "inspecciones": vehiculo.inspecciones.select_related("conductor")[:5],
+                "novedades": vehiculo.novedades.select_related("conductor")[:5],
+                "fotos": vehiculo.fotos.all(),
+                "servicios": vehiculo.servicios.select_related("conductor")[:5],
+                "asignaciones": vehiculo.asignaciones.select_related("conductor")[:5],
+                "cumplimiento_documental": vehiculo.cumplimiento_documental,
+                "ultima_inspeccion": vehiculo.inspecciones.first(),
+            }
+        )
+        return contexto
 
 
 class AlertasView(AccesoFlotaMixin, TemplateView):

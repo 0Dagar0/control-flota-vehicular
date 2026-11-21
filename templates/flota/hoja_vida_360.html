@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block titulo %}Hoja de vida 360° · {{ vehiculo.placa }}{% endblock %}
+
+{% block contenido %}
+<div class="cabecera">
+  <div>
+    <h1>{{ vehiculo.placa }} · {{ vehiculo.marca }} {{ vehiculo.referencia }}</h1>
+    <p>
+      Vista 360° · {{ vehiculo.km_actual }} km · {{ vehiculo.estado_etiqueta }} ·
+      cumplimiento documental {{ cumplimiento_documental }}%
+    </p>
+  </div>
+  <div class="acciones-fila">
+    <a class="boton boton-secundario" href="{% url 'flota:detalle' vehiculo.placa %}">
+      Hoja de vida resumida
+    </a>
+    <a class="boton boton-secundario" href="{% url 'panel' %}">Volver al panel</a>
+  </div>
+</div>
+
+<div class="tarjeta">
+  <h2>Documentos (semáforo 30/15/7/3/0)</h2>
+  {% if documentos %}
+    <table>
+      <thead><tr><th>Documento</th><th>Vence</th><th>Semáforo</th><th>Soporte</th></tr></thead>
+      <tbody>
+        {% for documento in documentos %}
+          <tr>
+            <td>{{ documento.get_tipo_display }}</td>
+            <td>{{ documento.vencimiento|date:"d/m/Y" }}</td>
+            <td>
+              <span class="insignia insignia-{{ documento.semaforo_color }}">
+                {{ documento.semaforo_etiqueta }}
+              </span>
+            </td>
+            <td>{{ documento.estado_soporte }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="vacio-panel">El vehículo no tiene documentos registrados.</div>
+  {% endif %}
+</div>
+
+<div class="tarjeta">
+  <h2>Inspecciones recientes</h2>
+  {% for inspeccion in inspecciones %}
+    <p>
+      {{ inspeccion.iniciado_en|date:"d/m/Y H:i" }} · {{ inspeccion.conductor }} ·
+      {{ inspeccion.get_estado_display }} ·
+      {% if inspeccion.resultado %}{{ inspeccion.get_resultado_display }}{% else %}sin resultado{% endif %}
+    </p>
+  {% empty %}
+    <div class="vacio-panel">Todavía no hay inspecciones registradas.</div>
+  {% endfor %}
+</div>
+
+<div class="tarjeta">
+  <h2>Novedades recientes</h2>
+  {% for novedad in novedades %}
+    <p>
+      {{ novedad.reportada_en|date:"d/m/Y H:i" }} · {{ novedad.get_severidad_display }} ·
+      {{ novedad.estado }} · {{ novedad.descripcion|truncatechars:70 }}
+    </p>
+  {% empty %}
+    <div class="vacio-panel">El vehículo no tiene novedades registradas.</div>
+  {% endfor %}
+</div>
+
+<div class="tarjeta">
+  <h2>Fotos del vehículo</h2>
+  <p>{{ fotos|length }} de 6 fotos de referencia registradas.</p>
+  {% for foto in fotos %}
+    <p>{{ foto.get_tipo_display }} · {{ foto.nombre_archivo }}</p>
+  {% empty %}
+    <div class="vacio-panel">No hay fotos registradas.</div>
+  {% endfor %}
+</div>
+
+<div class="tarjeta">
+  <h2>Servicios y asignaciones</h2>
+  <p>Últimos servicios:</p>
+  {% for servicio in servicios %}
+    <p>{{ servicio.iniciado_en|date:"d/m/Y H:i" }} · {{ servicio.ruta }} · {{ servicio.estado }}</p>
+  {% empty %}
+    <p>Sin servicios registrados.</p>
+  {% endfor %}
+  <p>Historial de asignaciones:</p>
+  {% for asignacion in asignaciones %}
+    <p>{{ asignacion.conductor }} · desde {{ asignacion.fecha_inicio|date:"d/m/Y" }}{% if asignacion.fecha_fin %} hasta {{ asignacion.fecha_fin|date:"d/m/Y" }}{% endif %}</p>
+  {% empty %}
+    <p>Sin asignaciones registradas.</p>
+  {% endfor %}
+</div>
+{% endblock %}

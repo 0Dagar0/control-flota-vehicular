@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block titulo %}Panel de indicadores{% endblock %}
+
+{% block contenido %}
+<div class="cabecera">
+  <div>
+    <h1>Panel de indicadores</h1>
+    <p>Cumplimiento, bloqueos y fallas repetidas de la flota</p>
+  </div>
+</div>
+
+<div class="tarjeta">
+  <div class="resumen">
+    <div><span>Vehículos</span><strong>{{ total_vehiculos }}</strong></div>
+    <div><span>Bloqueados</span><strong>{{ total_bloqueados }}</strong></div>
+    <div><span>Novedades abiertas</span><strong>{{ novedades_abiertas }}</strong></div>
+    <div><span>Cumplimiento documental</span><strong>{{ cumplimiento_promedio }}%</strong></div>
+    <div><span>Inspecciones hoy</span><strong>{{ inspecciones_hoy }}</strong></div>
+  </div>
+</div>
+
+<div class="tarjeta">
+  <h2>Vehículos bloqueados</h2>
+  {% if bloqueados %}
+    <table>
+      <thead><tr><th>Placa</th><th>Vehículo</th><th>Motivo</th><th>Acción</th></tr></thead>
+      <tbody>
+        {% for vehiculo in bloqueados %}
+          <tr>
+            <td>{{ vehiculo.placa }}</td>
+            <td>{{ vehiculo.marca }} {{ vehiculo.referencia }}</td>
+            <td>{{ vehiculo.estado_etiqueta }}</td>
+            <td>
+              <a class="boton boton-secundario" href="{% url 'hoja_vida_360' vehiculo.placa %}">
+                Ver 360°
+              </a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="vacio-panel">Ningún vehículo está bloqueado.</div>
+  {% endif %}
+</div>
+
+<div class="tarjeta">
+  <h2>Flota</h2>
+  <table>
+    <thead>
+      <tr><th>Placa</th><th>Vehículo</th><th>Estado</th><th>Cumplimiento</th><th>Acción</th></tr>
+    </thead>
+    <tbody>
+      {% for vehiculo in vehiculos %}
+        <tr>
+          <td>{{ vehiculo.placa }}</td>
+          <td>{{ vehiculo.marca }} {{ vehiculo.referencia }}</td>
+          <td>
+            <span class="insignia {% if vehiculo.estado == 'operativo' %}insignia-verde{% else %}insignia-roja{% endif %}">
+              {{ vehiculo.estado_etiqueta }}
+            </span>
+          </td>
+          <td class="numero">{{ vehiculo.cumplimiento_documental }}%</td>
+          <td>
+            <a class="boton boton-secundario" href="{% url 'hoja_vida_360' vehiculo.placa %}">
+              Ver 360°
+            </a>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="5">No hay vehículos registrados.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="tarjeta">
+  <h2>Fallas repetidas (últimos 30 días)</h2>
+  {% if fallas_repetidas %}
+    <table>
+      <thead><tr><th>Vehículo</th><th>Falla</th><th>Veces</th></tr></thead>
+      <tbody>
+        {% for falla in fallas_repetidas %}
+          <tr>
+            <td>{{ falla.vehiculo__placa }}</td>
+            <td>{{ falla.descripcion_normal }}</td>
+            <td class="numero">{{ falla.total }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="vacio-panel">No hay fallas repetidas en el período.</div>
+  {% endif %}
+</div>
+{% endblock %}

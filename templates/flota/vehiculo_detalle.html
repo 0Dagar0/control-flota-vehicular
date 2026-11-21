@@ -11,6 +11,7 @@
     {% if user.es_superadmin %}
       <a class="boton boton-secundario" href="{% url 'maestros:vehiculo_editar' vehiculo.placa %}">Editar</a>
     {% endif %}
+    <a class="boton boton-secundario" href="{% url 'hoja_vida_360' vehiculo.placa %}">Vista 360°</a>
     <a class="boton boton-secundario" href="{% url 'flota:lista' %}">Volver a la flota</a>
   </div>
 </div>

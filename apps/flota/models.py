@@ -164,6 +164,15 @@ class Vehiculo(models.Model):
         """Nombre legible del estado, para mostrarlo en las plantillas."""
         return self.Estado(self.estado).label
 
+    @property
+    def cumplimiento_documental(self) -> int:
+        """Porcentaje de documentos con soporte digital (R19), para el panel v0.10."""
+        total = self.documentos.count()
+        if total == 0:
+            return 100
+        con_soporte = self.documentos.exclude(soporte="").count()
+        return round(con_soporte * 100 / total)
+
 
 def ruta_foto_vehiculo(instancia: "FotoVehiculo", nombre_original: str) -> str:
     """Nombre descriptivo del archivo: ``fotos/vehiculos/2026/11/ABC123-frontal.jpg``."""

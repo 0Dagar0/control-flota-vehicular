@@ -3,7 +3,7 @@ from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
-from apps.flota.views import AlertasView
+from apps.flota.views import AlertasView, HojaVida360View, PanelView
 from apps.flota.views_novedades import (
     AutorizarSalidaView,
     MisNovedadesView,
@@ -27,6 +27,8 @@ urlpatterns = [
         InspeccionRapidaView.as_view(),
         name="inspeccion_rapida",
     ),
+    path("panel/", PanelView.as_view(), name="panel"),
+    path("hoja-vida/<str:placa>/", HojaVida360View.as_view(), name="hoja_vida_360"),
     path("vehiculos/", include("apps.flota.urls")),
     path("documentos/", include("apps.flota.urls_documentos")),
     path("conductores/", maestros.ConductorListaView.as_view(), name="conductores"),

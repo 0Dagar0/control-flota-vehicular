@@ -23,7 +23,7 @@
     <label for="menu-toggle" class="menu-cerrar">✕ Cerrar menú</label>
 
     <nav class="menu">
-      <a href="/" {% if seccion == "panel" %}class="activo"{% endif %}>🏠 <span class="menu-texto">Panel</span></a>
+      <a href="{% url 'panel' %}" {% if seccion == "panel" %}class="activo"{% endif %}>🏠 <span class="menu-texto">Panel</span></a>
       {% if user.es_admin %}
         <a href="{% url 'alertas' %}" {% if seccion == "alertas" %}class="activo"{% endif %}>🔔 <span class="menu-texto">Alertas</span></a>
         <a href="{% url 'novedades' %}" {% if seccion == "novedades" %}class="activo"{% endif %}>⚠️ <span class="menu-texto">Novedades</span></a>
