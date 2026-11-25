@@ -104,6 +104,9 @@
       </div>
     {% endfor %}
   </div>
-  <p class="meta">Las fotos se suben desde el panel de administración mientras llega la pantalla de carga.</p>
+  <p class="meta">Las fotos se guardan con historial: al cambiar una, la anterior se conserva.</p>
+  <div class="acciones-fila">
+    <a class="boton" href="{% url 'flota:fotos' vehiculo.placa %}">Administrar fotos</a>
+  </div>
 </div>
 {% endblock %}

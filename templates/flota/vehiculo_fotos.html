@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block titulo %}Fotos de {{ vehiculo.placa }}{% endblock %}
+
+{% block contenido %}
+<div class="cabecera">
+  <div>
+    <h1>Fotos de {{ vehiculo.placa }}</h1>
+    <p>{{ vehiculo.marca }} {{ vehiculo.referencia }} · modelo {{ vehiculo.modelo }}</p>
+  </div>
+  <div class="acciones-fila">
+    <a class="boton boton-secundario" href="{% url 'flota:detalle' vehiculo.placa %}">Hoja de vida</a>
+    <a class="boton boton-secundario" href="{% url 'flota:lista' %}">Volver a la flota</a>
+  </div>
+</div>
+
+<div class="tarjeta">
+  <h2>Las 6 fotos de referencia</h2>
+  <p class="meta">
+    Cada ángulo guarda su propia foto. Al cambiarla, la anterior se conserva en el
+    historial: nunca se borra (R14).
+  </p>
+  <div class="rejilla-fotos">
+    {% for espacio in espacios %}
+      <div class="foto-slot">
+        <h3>{{ espacio.etiqueta }}</h3>
+        {% if espacio.foto %}
+          <img src="{{ espacio.foto.imagen.url }}" alt="Foto {{ espacio.etiqueta }} de {{ vehiculo.placa }}">
+          <span class="meta">
+            {{ espacio.foto.subida_en|date:"d/m/Y H:i" }}
+            {% if espacio.foto.subido_por %}· {{ espacio.foto.subido_por.get_full_name|default:espacio.foto.subido_por.documento }}{% endif %}
+          </span>
+          <span class="meta">{{ espacio.versiones }} guardada{{ espacio.versiones|pluralize:"s" }}</span>
+        {% else %}
+          <span class="vacio">Sin foto</span>
+        {% endif %}
+
+        <form class="campo" method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+          <input type="hidden" name="tipo" value="{{ espacio.clave }}">
+          <label for="imagen-{{ espacio.clave }}">
+            {% if espacio.foto %}Cambiar foto{% else %}Subir foto{% endif %}
+          </label>
+          <input id="imagen-{{ espacio.clave }}" type="file" name="imagen"
+                 accept="image/png,image/jpeg,image/webp" required>
+          <input type="text" name="descripcion" maxlength="150"
+                 placeholder="Descripción (opcional)"
+                 {% if form and tipo_con_error == espacio.clave %}value="{{ form.descripcion.value|default_if_none:'' }}"{% endif %}>
+          {% if form and tipo_con_error == espacio.clave %}
+            {{ form.non_field_errors }}
+            {{ form.imagen.errors }}
+            {{ form.descripcion.errors }}
+          {% endif %}
+          <button type="submit" class="boton">Guardar</button>
+        </form>
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

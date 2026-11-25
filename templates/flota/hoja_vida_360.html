@@ -76,6 +76,9 @@
   {% empty %}
     <div class="vacio-panel">No hay fotos registradas.</div>
   {% endfor %}
+  <div class="acciones-fila">
+    <a class="boton boton-secundario" href="{% url 'flota:fotos' vehiculo.placa %}">Administrar fotos</a>
+  </div>
 </div>
 
 <div class="tarjeta">

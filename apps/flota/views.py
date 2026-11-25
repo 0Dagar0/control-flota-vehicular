@@ -17,6 +17,7 @@ from django.utils import timezone
 from django.views.generic import DetailView, ListView, TemplateView
 
 from .forms_documentos import DocumentoRenovarForm
+from .forms_fotos import FotoVehiculoForm
 from .forms_mantenimiento import IncidenteForm, MantenimientoForm
 from .models import (
     Asignacion,
@@ -90,6 +91,59 @@ class VehiculoDetalleView(AccesoFlotaMixin, DetailView):
             for clave, etiqueta in FotoVehiculo.Tipo.choices
         ]
         return contexto
+
+
+class VehiculoFotosView(AccesoFlotaMixin, TemplateView):
+    """Galería de las 6 fotos del vehículo, con carga y historial."""
+
+    template_name = "flota/vehiculo_fotos.html"
+
+    def get_vehiculo(self):
+        return get_object_or_404(Vehiculo, placa=self.kwargs["placa"])
+
+    def contexto(self, vehiculo, form=None, tipo_con_error=""):
+        fotos = list(vehiculo.fotos.select_related("subido_por"))
+        ultimas = {}
+        versiones = {}
+        for foto in fotos:
+            ultimas.setdefault(foto.tipo, foto)
+            versiones[foto.tipo] = versiones.get(foto.tipo, 0) + 1
+        espacios = [
+            {
+                "clave": clave,
+                "etiqueta": etiqueta,
+                "foto": ultimas.get(clave),
+                "versiones": versiones.get(clave, 0),
+            }
+            for clave, etiqueta in FotoVehiculo.Tipo.choices
+        ]
+        return {
+            "seccion": "vehiculos",
+            "vehiculo": vehiculo,
+            "espacios": espacios,
+            "form": form,
+            "tipo_con_error": tipo_con_error,
+        }
+
+    def get(self, request, *args, **kwargs):
+        return render(request, self.template_name, self.contexto(self.get_vehiculo()))
+
+    def post(self, request, *args, **kwargs):
+        vehiculo = self.get_vehiculo()
+        tipo = request.POST.get("tipo", "")
+        if tipo not in dict(FotoVehiculo.Tipo.choices):
+            messages.error(request, "El tipo de foto no es válido.")
+            return redirect("flota:fotos", placa=vehiculo.placa)
+        foto = FotoVehiculo(vehiculo=vehiculo, tipo=tipo, subido_por=request.user)
+        form = FotoVehiculoForm(request.POST, request.FILES, instance=foto)
+        if form.is_valid():
+            form.save()
+            messages.success(
+                request,
+                f"Foto «{foto.get_tipo_display()}» guardada para {vehiculo.placa}.",
+            )
+            return redirect("flota:fotos", placa=vehiculo.placa)
+        return render(request, self.template_name, self.contexto(vehiculo, form, tipo))
 
 
 class DocumentoListaView(AccesoFlotaMixin, ListView):
@@ -209,13 +263,17 @@ class HojaVida360View(AccesoFlotaMixin, DetailView):
     def get_context_data(self, **kwargs):
         contexto = super().get_context_data(**kwargs)
         vehiculo = self.object
+        # Una foto por ángulo: la más reciente de cada tipo (el resto es historial).
+        ultimas_fotos = {}
+        for foto in vehiculo.fotos.all():
+            ultimas_fotos.setdefault(foto.tipo, foto)
         contexto.update(
             {
                 "seccion": "vehiculos",
                 "documentos": vehiculo.documentos.all(),
                 "inspecciones": vehiculo.inspecciones.select_related("conductor")[:5],
                 "novedades": vehiculo.novedades.select_related("conductor")[:5],
-                "fotos": vehiculo.fotos.all(),
+                "fotos": list(ultimas_fotos.values()),
                 "servicios": vehiculo.servicios.select_related("conductor")[:5],
                 "asignaciones": vehiculo.asignaciones.select_related("conductor")[:5],
                 "mantenimientos": vehiculo.mantenimientos.all()[:5],

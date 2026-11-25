@@ -8,5 +8,6 @@ app_name = "flota"
 
 urlpatterns = [
     path("", views.VehiculoListaView.as_view(), name="lista"),
+    path("<str:placa>/fotos/", views.VehiculoFotosView.as_view(), name="fotos"),
     path("<str:placa>/", views.VehiculoDetalleView.as_view(), name="detalle"),
 ]

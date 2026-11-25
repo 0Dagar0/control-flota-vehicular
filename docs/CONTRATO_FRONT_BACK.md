@@ -113,6 +113,7 @@ La capa A es la principal. La capa B existe para que la app funcione sin interne
 | `GET/POST` | `/novedades/<id>/gestion/` | Registrar gestión, cambiar vehículo o escalar |
 | `GET` | `/vehiculos/` | Listado paginado |
 | `GET` | `/vehiculos/<placa>/` | Hoja de vida resumida |
+| `GET/POST` | `/vehiculos/<placa>/fotos/` | Galería de las 6 fotos: subir o reemplazar un ángulo sin borrar el historial (v0.3+, 23/11/2026) |
 | `GET` | `/hoja-vida/<placa>/` | Vista 360°: documentos, inspecciones, novedades, mantenimientos, incidentes |
 | `GET/POST` | `/documentos/` | Registrar o renovar documentos (con soporte digital obligatorio) |
 | `GET` | `/conductores/` | Listado de conductores: datos, contacto de emergencia, licencia y estado (solo lectura para el admin) |
