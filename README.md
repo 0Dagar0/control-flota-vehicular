@@ -6,9 +6,10 @@ preoperacionales, novedades, documentos, mantenimiento y hoja de vida por placa.
 Proyecto en construcción por versiones. Estado actual: **v1.1 (mantenimientos e
 incidentes)** publicada en `origin/master`, más la **galería de fotos**, el **correo
 SMTP**, el **bot de Telegram** y las **claves VAPID** listos para la v1.0, con
-**238 pruebas en verde**. El backend de la **v1.0 (notificaciones)** ya está
-implementado y guardado sin publicar; falta el despliegue con HTTPS para que Web
-Push funcione fuera del PC y las 6 pantallas del encargo 05 de diseño.
+**238 pruebas en verde**. El backend de la **v1.0 (notificaciones)** está
+**publicado en `origin/master` = `915434e`** y el encargo 05 de diseño quedó ejecutado;
+falta el despliegue con HTTPS para que Web Push funcione fuera del PC y la revisión
+visual de las maquetas.
 
 ## Requisitos
 
