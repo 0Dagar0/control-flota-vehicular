@@ -177,7 +177,73 @@ Ese archivo ya está excluido por `.gitignore`.
 | Comprobación | Comando | Resultado esperado |
 |---|---|---|
 | Configuración | `manage.py check` | `System check identified no issues` |
-| Pruebas | `pytest` | `2 passed` |
+| Pruebas | `pytest` | Todas pasan (`196 passed` al 24/11/2026) |
 | Estilo | `ruff check .` | `All checks passed!` |
 | Base al día | `manage.py makemigrations --check --dry-run` | `No changes detected` |
 | Página web | `manage.py runserver` | Carga en `http://127.0.0.1:8000/` |
+
+---
+
+## Parte 5. Configurar el correo saliente (Gmail)
+
+Objetivo: que la aplicación pueda enviar avisos desde `miflota.granjero@gmail.com`.
+Se hace una sola vez por equipo.
+
+> **Django 6:** la configuración vive en `MAILERS`, dentro de `config/settings.py`.
+> Las variables del `.env` se siguen llamando `EMAIL_*` porque así se documentan en
+> Gmail y en la mayoría de proveedores. Si `EMAIL_HOST` está vacío, los correos se
+> imprimen en la consola y no se envía nada: el proyecto funciona igual.
+
+### 5.1 Crear la contraseña de aplicación
+
+Requisito: la verificación en dos pasos debe estar activa en la cuenta.
+
+1. Entra a `myaccount.google.com/apppasswords` (o Seguridad → Verificación en dos pasos → Contraseñas de aplicaciones).
+2. Nombre: `Mi Flota - correo`. Pulsa **Crear**.
+3. Copia los **16 caracteres sin espacios**. Google los muestra una sola vez.
+4. Guarda esa contraseña en un lugar privado. **No es** la contraseña de la cuenta.
+
+### 5.2 Escribirla en el `.env`
+
+El archivo `.env` está en la carpeta `App` y no se sube a Git. Contiene un bloque
+con un marcador; reemplaza **solo** la línea marcada:
+
+| Variable | Valor en este proyecto |
+|---|---|
+| `EMAIL_HOST` | `smtp.gmail.com` |
+| `EMAIL_PORT` | `587` |
+| `EMAIL_HOST_USER` | `miflota.granjero@gmail.com` |
+| `EMAIL_HOST_PASSWORD` | la contraseña de aplicación de 16 caracteres |
+| `EMAIL_USE_TLS` | `True` |
+| `EMAIL_TIMEOUT` | `20` |
+| `DEFAULT_FROM_EMAIL` | `Mi Flota <miflota.granjero@gmail.com>` |
+
+### 5.3 Probar el envío
+
+Desde la carpeta `App`:
+
+```powershell
+.venv\Scripts\python.exe manage.py comprobar_correo
+```
+
+Envía la prueba a la misma cuenta. Si llega, el canal funciona. Para enviarla a
+otra dirección:
+
+```powershell
+.venv\Scripts\python.exe manage.py comprobar_correo --para otro@correo.com
+```
+
+### 5.4 Si algo falla
+
+| Mensaje | Causa | Solución |
+|---|---|---|
+| Gmail rechazó el usuario o la contraseña | Se usó la contraseña de la cuenta o el correo está incompleto | Repite el paso 5.1 y copia los 16 caracteres sin espacios |
+| No se pudo conectar con smtp.gmail.com:587 | Red, firewall o antivirus | Prueba otra red y revisa que el puerto 587 no esté bloqueado |
+| «el correo se imprime en esta consola» | Falta `EMAIL_HOST` en el `.env` | Revisa que el bloque se guardó y que no quedó comentado |
+| Llega a spam | Remitente nuevo sin historial | Marca «no es spam» una vez; al ser la misma cuenta suele corregirse |
+
+### 5.5 Límites de una cuenta Gmail normal
+
+Unos 500 destinatarios al día y sin garantía de servicio. Para los avisos de la
+flota es suficiente; para campañas masivas habría que pasar a un proveedor
+transaccional (Brevo, Resend) con el dominio propio.

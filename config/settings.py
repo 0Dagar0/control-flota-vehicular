@@ -134,10 +134,41 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # ---------------------------------------------------------------------------
 # Correo
 # ---------------------------------------------------------------------------
-# En desarrollo los correos se imprimen en la consola.
-# En v1.0 se cambia a SMTP con las credenciales del .env.
-MAILERS = {
-    "default": {
-        "BACKEND": "django.core.mail.backends.console.EmailBackend",
-    },
-}
+# Con EMAIL_HOST en el .env se envía de verdad por SMTP; sin él los correos se
+# imprimen en la consola, para que el proyecto funcione en un equipo sin
+# credenciales. En Django 6 la configuración va en MAILERS y ya no se permite
+# definir EMAIL_HOST, EMAIL_PORT, etc.: por eso se leen en variables privadas.
+_correo_host = config("EMAIL_HOST", default="")
+_correo_puerto = config("EMAIL_PORT", default=587, cast=int)
+_correo_usuario = config("EMAIL_HOST_USER", default="")
+_correo_clave = config("EMAIL_HOST_PASSWORD", default="")
+_correo_tls = config("EMAIL_USE_TLS", default=True, cast=bool)
+_correo_espera = config("EMAIL_TIMEOUT", default=20, cast=int)
+
+DEFAULT_FROM_EMAIL = config(
+    "DEFAULT_FROM_EMAIL", default="Mi Flota <no-responder@localhost>"
+)
+SERVER_EMAIL = DEFAULT_FROM_EMAIL
+# Remitente de la cuenta SMTP (también el destinatario por defecto de la prueba).
+CORREO_REMITENTE = _correo_usuario
+
+if _correo_host:
+    MAILERS = {
+        "default": {
+            "BACKEND": "django.core.mail.backends.smtp.EmailBackend",
+            "OPTIONS": {
+                "host": _correo_host,
+                "port": _correo_puerto,
+                "username": _correo_usuario,
+                "password": _correo_clave,
+                "use_tls": _correo_tls,
+                "timeout": _correo_espera,
+            },
+        },
+    }
+else:
+    MAILERS = {
+        "default": {
+            "BACKEND": "django.core.mail.backends.console.EmailBackend",
+        },
+    }
