@@ -33,6 +33,7 @@ INSTALLED_APPS = [
     "apps.flota",
     "apps.maestros",
     "apps.servicio",
+    "apps.notificaciones",
 ]
 
 MIDDLEWARE = [
@@ -57,6 +58,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "apps.notificaciones.context_processors.badge",
             ],
         },
     },
@@ -172,3 +174,24 @@ else:
             "BACKEND": "django.core.mail.backends.console.EmailBackend",
         },
     }
+
+# ---------------------------------------------------------------------------
+# Notificaciones (v1.0)
+# ---------------------------------------------------------------------------
+# Telegram: el token se lee del .env y nunca se muestra en pantalla ni en Git.
+TELEGRAM_BOT_TOKEN = config("TELEGRAM_BOT_TOKEN", default="")
+TELEGRAM_API_URL = config("TELEGRAM_API_URL", default="https://api.telegram.org")
+TELEGRAM_TIMEOUT = config("TELEGRAM_TIMEOUT", default=10, cast=int)
+
+# Web Push: par de claves VAPID. La privada está en base64 dentro del .env.
+VAPID_PUBLIC_KEY = config("VAPID_PUBLIC_KEY", default="")
+VAPID_PRIVATE_KEY_B64 = config("VAPID_PRIVATE_KEY_B64", default="")
+VAPID_ADMIN_EMAIL = config("VAPID_ADMIN_EMAIL", default="")
+WEB_PUSH_TIMEOUT = config("WEB_PUSH_TIMEOUT", default=10, cast=int)
+
+# Cola de envíos: 3 intentos, espera creciente y escalamiento a los 5 minutos.
+NOTIFICACIONES_INTENTOS = config("NOTIFICACIONES_INTENTOS", default=3, cast=int)
+NOTIFICACIONES_ESPERA = config("NOTIFICACIONES_ESPERA", default=60, cast=int)
+NOTIFICACIONES_ESCALAMIENTO_MINUTOS = config(
+    "NOTIFICACIONES_ESCALAMIENTO_MINUTOS", default=5, cast=int
+)

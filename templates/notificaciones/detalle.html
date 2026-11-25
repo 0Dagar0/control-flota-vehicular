@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block titulo %}Detalle de la notificación{% endblock %}
+
+{% block contenido %}
+<div class="cabecera">
+  <div>
+    <h1>{{ notificacion.titulo }}</h1>
+    <p>{{ notificacion.get_evento_display }} · {{ notificacion.creado_en|date:"d/m/Y H:i" }}</p>
+  </div>
+  <a class="boton boton-secundario" href="{% url 'notificaciones:lista' %}">Volver a la bandeja</a>
+</div>
+
+<div class="tarjeta">
+  <p>{{ notificacion.mensaje|linebreaksbr }}</p>
+  <p class="texto-suave">
+    Destinatario: {{ notificacion.usuario.get_full_name|default:notificacion.usuario.documento }}
+    {% if notificacion.es_critica %}
+      · <span class="insignia insignia-roja">Crítica (no silenciable, R15)</span>
+    {% endif %}
+  </p>
+  {% if notificacion.url %}
+    <p><a class="enlace" href="{{ notificacion.url }}">Abrir el registro de origen</a></p>
+  {% endif %}
+  {% if notificacion.error %}
+    <div class="aviso aviso-error"><strong>Último error:</strong> {{ notificacion.error }}</div>
+  {% endif %}
+</div>
+
+<div class="tarjeta">
+  <h2>Estado de los canales</h2>
+  <div class="rejilla-fotos">
+    {% for fila in canales %}
+      <article class="foto-slot">
+        <h3>{{ fila.nombre }}</h3>
+        {% if fila.notificacion %}
+          <p>
+            {% if fila.notificacion.estado == "fallida" %}
+              <span class="insignia insignia-roja">Fallida</span>
+            {% elif fila.notificacion.estado == "enviada" %}
+              <span class="insignia insignia-verde">Enviada</span>
+            {% elif fila.notificacion.estado == "leida" %}
+              <span class="insignia insignia-gris">Leída</span>
+            {% else %}
+              <span class="insignia insignia-amarilla">Pendiente</span>
+            {% endif %}
+          </p>
+          <p class="meta">
+            {{ fila.notificacion.creado_en|date:"d/m/Y H:i" }}
+            · intento {{ fila.notificacion.intentos }}
+          </p>
+          {% if fila.notificacion.error %}
+            <p class="meta">{{ fila.notificacion.error|truncatechars:120 }}</p>
+          {% endif %}
+        {% else %}
+          <span class="vacio">Sin registro para este evento</span>
+        {% endif %}
+      </article>
+    {% endfor %}
+  </div>
+</div>
+
+<div class="aviso">
+  <strong>Escalamiento:</strong> si nadie abre una notificación crítica en
+  {{ escalamiento_minutos }} minutos, se repite por los 4 canales.
+</div>
+
+{% if notificacion.sin_leer %}
+<div class="tarjeta">
+  <form method="post" action="{% url 'notificaciones:marcar_leida' notificacion.pk %}">
+    {% csrf_token %}
+    <button type="submit" class="boton">Marcar como leída</button>
+  </form>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block titulo %}Resumen diario{% endblock %}
+
+{% block contenido %}
+<div class="cabecera">
+  <div>
+    <h1>Resumen diario</h1>
+    <p>Vista previa del aviso de las 7:00 a. m. ({{ datos.fecha|date:"d/m/Y" }}).</p>
+  </div>
+  <a class="boton boton-secundario" href="{% url 'notificaciones:lista' %}">Volver a la bandeja</a>
+</div>
+
+<div class="tarjeta">
+  <h2>Versión correo (escritorio)</h2>
+  <pre class="texto-suave" style="white-space:pre-wrap">{{ texto }}</pre>
+</div>
+
+<div class="rejilla-fotos">
+  <article class="foto-slot">
+    <h3>Documentos a 7/3/0 días</h3>
+    {% if datos.documentos %}
+      {% for documento in datos.documentos %}
+        <p class="meta">
+          {{ documento.get_tipo_display }} · {{ documento.dias_para_vencer }} día(s) ·
+          {{ documento.vencimiento|date:"d/m/Y" }}
+        </p>
+      {% endfor %}
+    {% else %}
+      <span class="vacio">No hay documentos por vencer en 7 días.</span>
+    {% endif %}
+  </article>
+  <article class="foto-slot">
+    <h3>Mantenimientos (umbral {{ datos.umbral }} km)</h3>
+    {% if datos.mantenimientos %}
+      {% for item in datos.mantenimientos %}
+        <p class="meta">{{ item.vehiculo.placa }} · faltan {{ item.km_restantes }} km · {{ item.servicio }}</p>
+      {% endfor %}
+    {% else %}
+      <span class="vacio">Ningún mantenimiento cerca del umbral.</span>
+    {% endif %}
+  </article>
+  <article class="foto-slot">
+    <h3>Inspecciones pendientes</h3>
+    {% if datos.inspecciones %}
+      {% for inspeccion in datos.inspecciones %}
+        <p class="meta">{{ inspeccion.vehiculo.placa }} · {{ inspeccion.conductor }}</p>
+      {% endfor %}
+    {% else %}
+      <span class="vacio">No hay inspecciones pendientes.</span>
+    {% endif %}
+  </article>
+  <article class="foto-slot">
+    <h3>Versión push (celular)</h3>
+    <p class="meta">Mi Flota · Resumen del {{ datos.fecha|date:"d/m/Y" }}</p>
+    <p class="meta">
+      {{ datos.documentos|length }} documento(s), {{ datos.mantenimientos|length }}
+      mantenimiento(s) y {{ datos.inspecciones|length }} inspección(es) pendiente(s).
+    </p>
+  </article>
+</div>
+{% endblock %}

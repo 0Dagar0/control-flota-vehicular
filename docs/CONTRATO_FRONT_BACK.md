@@ -272,7 +272,9 @@ Error:
 | **Autorización** | novedad, superadmin, justificación, hash, ip, fecha |
 | **Mantenimiento** | vehículo, tipo (preventivo/correctivo), servicio, parte, fecha, km, costo, próximo_km, próxima_fecha (opcional), observaciones, estado_factura (pendiente/adjunta), soporte_factura (v1.1) |
 | **Incidente** | vehículo, conductor, fecha, gravedad, descripción, causa, acción (v1.1) |
-| **Notificación** | usuario, evento, canal, estado, intentos, error, enviado_en |
+| **Notificación** | usuario, evento, canal, estado, intentos, error, enviado_en (más título, mensaje, enlace, referencia, clave de agrupación, crítica, creado_en, leida_en, próximo_intento_en y escalada_en) |
+| **PreferenciaNotificacion** | usuario, correo, Telegram, Web Push, resumen diario, hora del resumen (R15: la app y los críticos no se silencian) |
+| **SuscripcionPush** | usuario, endpoint, claves `p256dh`/`auth`, activa, creado_en |
 | **Auditoría** | usuario, acción, entidad, id, datos_antes, datos_despues, ip, fecha |
 
 **Reglas del modelo (precisión 2026-11-15):**

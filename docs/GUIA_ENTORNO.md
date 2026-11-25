@@ -177,7 +177,7 @@ Ese archivo ya está excluido por `.gitignore`.
 | Comprobación | Comando | Resultado esperado |
 |---|---|---|
 | Configuración | `manage.py check` | `System check identified no issues` |
-| Pruebas | `pytest` | Todas pasan (`196 passed` al 24/11/2026) |
+| Pruebas | `pytest` | Todas pasan (`238 passed` al 25/11/2026) |
 | Estilo | `ruff check .` | `All checks passed!` |
 | Base al día | `manage.py makemigrations --check --dry-run` | `No changes detected` |
 | Página web | `manage.py runserver` | Carga en `http://127.0.0.1:8000/` |
@@ -247,3 +247,104 @@ otra dirección:
 Unos 500 destinatarios al día y sin garantía de servicio. Para los avisos de la
 flota es suficiente; para campañas masivas habría que pasar a un proveedor
 transaccional (Brevo, Resend) con el dominio propio.
+
+---
+
+## Parte 6. Configurar Telegram
+
+El bot **@MiFlotaGranjeroBot** ya existe y su token está guardado solo en `App\.env`,
+en la variable `TELEGRAM_BOT_TOKEN`. Si algún día hay que crearlo de nuevo:
+
+1. Abre `https://t.me/BotFather` y envía `/newbot`.
+2. Nombre visible: `Mi Flota Avisos`. Usuario: `MiFlotaGranjeroBot` (debe terminar en `bot`).
+3. Copia el token que entrega BotFather y pégalo **solo** en `App\.env`, sin comillas ni espacios.
+4. Abre `https://t.me/MiFlotaGranjeroBot`, pulsa **Iniciar** y envía `hola`.
+   Un bot no puede escribirle primero a nadie: sin este paso no hay chat_id.
+5. Guarda el chat_id en el usuario, en `/maestros/usuarios/` → campo **chat de Telegram**.
+   En un chat privado ese número es el ID numérico de la persona.
+
+### 6.1 Probarlo
+
+```powershell
+.venv\Scripts\python.exe manage.py comprobar_telegram --sin-envio
+.venv\Scripts\python.exe manage.py comprobar_telegram
+```
+
+El primero verifica el token con `getMe`; el segundo además envía un mensaje de
+prueba al último chat que haya escrito al bot. El comando **nunca imprime el token**.
+Si se filtra, en BotFather envía `/revoke` y actualiza el `.env`.
+
+| Mensaje | Causa | Solución |
+|---|---|---|
+| `Falta TELEGRAM_BOT_TOKEN` | Marcador sin reemplazar | Pega el token en `.env` |
+| `Telegram rechazó el token: 401` | Token revocado o mal copiado | `/revoke` y pegar el nuevo |
+| `No hay ningún chat iniciado` | Nadie pulsó Iniciar | Paso 4 de esta sección |
+| `429 ... Vuelve a intentarlo en N s` | Demasiados mensajes | La cola respeta `retry_after` y reintenta |
+
+Límites: unos 30 mensajes/segundo en total y 1 por segundo por chat. Para enviar
+avisos **no hace falta webhook**; solo haría falta si el bot recibiera comandos.
+
+---
+
+## Parte 7. Web Push (VAPID)
+
+Las claves ya están generadas en `App\.env` y **no se regeneran**: si cambian, los
+navegadores deben volver a suscribirse. No se muestran completas en ninguna
+pantalla; en `/notificaciones/canales/` solo aparece una huella SHA-256.
+
+Para activar los avisos en un navegador:
+
+1. Inicia sesión y entra a `/notificaciones/preferencias/`.
+2. Marca «Recibir urgencias en el navegador (Web Push)» y guarda.
+3. Pulsa **Activar avisos en este navegador** y concede el permiso.
+   El navegador envía su suscripción a `/notificaciones/suscribir/` y se guarda
+   en la tabla `SuscripcionPush`.
+
+El service worker está en `/sw.js` y el manifiesto PWA en `/static/manifest.webmanifest`.
+Con la pestaña cerrada, el aviso llega mientras el navegador siga abierto.
+
+**HTTPS es obligatorio** fuera del equipo local (`localhost` sí funciona sin HTTPS).
+En iPhone, además, hay que instalar la PWA (iOS 16.4 o superior); mientras tanto,
+el correo y Telegram cubren ese canal.
+
+---
+
+## Parte 8. Cola de notificaciones y resumen diario
+
+Los eventos del contrato (novedad crítica, solicitud de autorización, autorización
+concedida, vencimientos, inspecciones pendientes y mantenimientos) crean filas en
+`Notificacion`. Nada se envía en el momento: un programador ejecuta la cola.
+
+```powershell
+.venv\Scripts\python.exe manage.py enviar_notificaciones
+.venv\Scripts\python.exe manage.py enviar_notificaciones --resumen
+.venv\Scripts\python.exe manage.py enviar_notificaciones --mediodia
+```
+
+Reglas: 3 intentos por canal con espera 60 s, 120 s y 240 s; el error queda en la
+fila. Los críticos no se pueden silenciar (R15) y se repiten por los 4 canales a
+los 5 minutos si nadie los abre. `--resumen` genera el aviso de las 7:00 a. m. y
+`--mediodia` avisa de las inspecciones que siguen en progreso. El cierre de
+servicio con novedad avisa automáticamente al administrador desde la pantalla
+del conductor.
+
+En este PC ya están registradas tres tareas del Programador de tareas de Windows:
+
+| Tarea | Frecuencia | Comando |
+|---|---|---|
+| `MiFlota-Cola-Notificaciones` | Cada minuto | `enviar_notificaciones` |
+| `MiFlota-Resumen-Diario` | Diaria 07:00 | `enviar_notificaciones --resumen` |
+| `MiFlota-Inspecciones-Mediodia` | Diaria 12:00 | `enviar_notificaciones --mediodia` |
+
+Se crearon con `scripts\registrar_tareas_notificaciones.ps1` (sin contraseñas: usan la
+sesión del usuario actual, así que deben estar iniciadas en Windows). Para volver a
+registrarlas tras cambiar de equipo:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\registrar_tareas_notificaciones.ps1
+```
+
+Para revisarlas: `Get-ScheduledTask -TaskName 'MiFlota-*' | Select TaskName,State`.
+En producción, un `cron` equivalente. Los parámetros se ajustan en el `.env` con
+`NOTIFICACIONES_INTENTOS`, `NOTIFICACIONES_ESPERA` y
+`NOTIFICACIONES_ESCALAMIENTO_MINUTOS`.

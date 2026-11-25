@@ -132,8 +132,12 @@ Semáforo de 30/15/7/3/0 días, renovación, alertas.
 ### v0.10 — Hoja de vida y panel *(completada)*
 Vista 360° por placa e indicadores (cumplimiento, bloqueos, fallas repetidas).
 
-### v1.0 — Notificaciones y despliegue
-Los 4 canales, reintentos, preferencias y puesta en producción.
+### v1.0 - Notificaciones y despliegue *(backend implementado el 25/11/2026)*
+Los 4 canales, reintentos, preferencias y puesta en producción. El backend ya
+registra cada aviso por usuario y canal, envía por correo, Telegram y Web Push,
+programa 3 reintentos con espera creciente, escala los críticos a los 5 minutos y
+genera el resumen de las 7:00. Faltan el despliegue con HTTPS y las 6 pantallas
+del encargo 05 de diseño. Ver `GUIA_ENTORNO.md`, partes 6 a 8.
 
 ### v1.1 — Mantenimiento e incidentes *(completada)*
 Inspección profunda semanal, mantenimiento **registrado a mano** (tipo, fecha, km del vehículo y

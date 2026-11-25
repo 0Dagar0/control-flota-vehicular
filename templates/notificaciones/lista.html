@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block titulo %}Notificaciones{% endblock %}
+
+{% block contenido %}
+<div class="cabecera">
+  <div>
+    <h1>Notificaciones <span class="insignia insignia-roja">{{ sin_leer }}</span></h1>
+    <p>Bandeja de avisos de tu cuenta: app, correo, Telegram y Web Push.</p>
+  </div>
+  <div>
+    <a class="boton boton-secundario" href="{% url 'notificaciones:preferencias' %}">Preferencias</a>
+    {% if user.es_superadmin %}
+      <a class="boton boton-secundario" href="{% url 'notificaciones:canales' %}">Canales</a>
+    {% endif %}
+    <a class="boton boton-secundario" href="{% url 'notificaciones:resumen_diario' %}">Resumen diario</a>
+  </div>
+</div>
+
+<div class="tarjeta">
+  <form method="get" class="formulario">
+    <div class="campo">
+      <label for="q">Buscar</label>
+      <input id="q" type="text" name="q" value="{{ filtros.q|default:'' }}" placeholder="Título o mensaje">
+    </div>
+    <div class="campo">
+      <label for="canal">Canal</label>
+      <select id="canal" name="canal">
+        <option value="">Todos</option>
+        {% for clave, nombre in canales %}
+          <option value="{{ clave }}" {% if filtros.canal == clave %}selected{% endif %}>{{ nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="campo">
+      <label for="estado">Estado</label>
+      <select id="estado" name="estado">
+        <option value="">Todos</option>
+        {% for clave, nombre in estados %}
+          <option value="{{ clave }}" {% if filtros.estado == clave %}selected{% endif %}>{{ nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="campo">
+      <label for="evento">Evento</label>
+      <select id="evento" name="evento">
+        <option value="">Todos</option>
+        {% for clave, nombre in eventos %}
+          <option value="{{ clave }}" {% if filtros.evento == clave %}selected{% endif %}>{{ nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="campo">
+      <label for="desde">Desde</label>
+      <input id="desde" type="date" name="desde" value="{{ filtros.desde|default:'' }}">
+    </div>
+    <div class="campo">
+      <label for="hasta">Hasta</label>
+      <input id="hasta" type="date" name="hasta" value="{{ filtros.hasta|default:'' }}">
+    </div>
+    <div class="acciones">
+      <button type="submit" class="boton">Filtrar</button>
+      <a class="boton boton-secundario" href="{% url 'notificaciones:lista' %}">Limpiar filtros</a>
+    </div>
+  </form>
+</div>
+
+<div class="tarjeta">
+  <form method="post" action="{% url 'notificaciones:marcar_todas' %}">
+    {% csrf_token %}
+    <button type="submit" class="boton boton-secundario">Marcar todas como leídas</button>
+  </form>
+
+  {% if notificaciones %}
+    <div class="tabla-tarjetas">
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Evento</th>
+            <th>Registro</th>
+            <th>Canal</th>
+            <th>Estado</th>
+            <th>Intentos</th>
+            <th>Acción</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for notificacion in notificaciones %}
+            <tr {% if notificacion.sin_leer %}class="notif-nueva"{% endif %}>
+              <td data-label="Fecha">{{ notificacion.creado_en|date:"d/m/Y H:i" }}</td>
+              <td data-label="Evento">
+                {% if notificacion.sin_leer %}<span class="punto-nuevo" title="Nueva">●</span>{% endif %}
+                {{ notificacion.get_evento_display }}
+                {% if notificacion.es_critica %}<span class="insignia insignia-roja">Crítica</span>{% endif %}
+              </td>
+              <td data-label="Registro">{{ notificacion.referencia|default:"-" }}</td>
+              <td data-label="Canal">{{ notificacion.get_canal_display }}</td>
+              <td data-label="Estado">
+                {% if notificacion.estado == "leida" %}
+                  <span class="insignia insignia-gris">Leída</span>
+                {% elif notificacion.estado == "fallida" %}
+                  <span class="insignia insignia-roja">Fallida</span>
+                {% elif notificacion.estado == "enviada" %}
+                  <span class="insignia insignia-verde">Enviada</span>
+                {% else %}
+                  <span class="insignia insignia-amarilla">Pendiente</span>
+                {% endif %}
+              </td>
+              <td data-label="Intentos">{{ notificacion.intentos }}</td>
+              <td data-label="Acción" class="acciones-fila">
+                <a class="enlace" href="{% url 'notificaciones:detalle' notificacion.pk %}">Abrir</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="vacio-panel">No tienes notificaciones con estos filtros.</div>
+  {% endif %}
+</div>
+
+{% if is_paginated %}
+<div class="tarjeta">
+  {% if page_obj.has_previous %}<a class="enlace" href="?page={{ page_obj.previous_page_number }}">‹ Anterior</a>{% endif %}
+  Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+  {% if page_obj.has_next %}<a class="enlace" href="?page={{ page_obj.next_page_number }}">Siguiente ›</a>{% endif %}
+</div>
+{% endif %}
+
+<div class="aviso">
+  Las notificaciones críticas no se pueden desactivar (R15).
+</div>
+{% endblock %}

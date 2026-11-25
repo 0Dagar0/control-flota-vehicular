@@ -12,6 +12,7 @@ from django.http import HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.generic import ListView, TemplateView
 
+from apps.notificaciones.servicios import notificar_autorizacion, notificar_novedad
 from apps.servicio.views import SoloConductorMixin, conductor_de
 
 from .forms_novedades import AutorizacionForm, NovedadGestionForm, NovedadReportarForm
@@ -54,6 +55,9 @@ class NovedadNuevaView(SoloConductorMixin, TemplateView):
             novedad.origen = Novedad.Origen.REPORTE
             novedad.reportada_por = request.user
             novedad.save()
+            # v1.0: una crítica o una solicitud de firma avisa de inmediato a los roles
+            # del contrato §9. Si falla el correo o Telegram, la cola lo reintentará.
+            notificar_novedad(novedad)
 
             # Fotos opcionales: una, varias o ninguna (decisión del dueño).
             for archivo in request.FILES.getlist("fotos"):
@@ -272,6 +276,8 @@ class AutorizarSalidaView(TemplateView):
                     usuario=request.user,
                     descripcion="Autorización de salida con falla (R8)",
                 )
+            # v1.0: aviso al conductor y a los administradores (contrato §9).
+            notificar_autorizacion(novedad, autorizado_por=request.user)
 
         messages.success(request, "Salida autorizada. El vehículo quedó desbloqueado.")
         return redirect("novedad_gestion", novedad.pk)

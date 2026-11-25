@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block titulo %}Estado de canales{% endblock %}
+
+{% block contenido %}
+<div class="cabecera">
+  <div>
+    <h1>Estado de canales</h1>
+    <p>Solo superadministradores. Los secretos se guardan fuera del código y nunca se muestran completos.</p>
+  </div>
+  <a class="boton boton-secundario" href="{% url 'notificaciones:lista' %}">Volver a la bandeja</a>
+</div>
+
+<div class="rejilla-fotos">
+  {% for canal in canales %}
+    <article class="foto-slot">
+      <h3>{{ canal.nombre }}</h3>
+      <p>
+        {% if canal.configurado %}
+          <span class="insignia insignia-verde">Configurado</span>
+        {% else %}
+          <span class="insignia insignia-amarilla">Sin configurar</span>
+        {% endif %}
+      </p>
+      <p class="meta">{{ canal.detalle }}</p>
+      <p class="meta">{{ canal.nota }}</p>
+    </article>
+  {% endfor %}
+</div>
+
+<div class="aviso">
+  Sin credenciales, la app sigue funcionando; solo se pierden los canales externos.
+</div>
+
+<div class="tarjeta">
+  <h2>Cómo enviar una prueba</h2>
+  <p class="texto-suave">Desde la carpeta <code>App</code>, en PowerShell:</p>
+  <ul class="lista-reglas">
+    <li>Correo: <code>.venv\Scripts\python.exe manage.py comprobar_correo</code></li>
+    <li>Telegram: <code>.venv\Scripts\python.exe manage.py comprobar_telegram</code></li>
+    <li>Web Push: abre las preferencias y pulsa «Activar avisos en este navegador».</li>
+  </ul>
+</div>
+
+<div class="tarjeta">
+  <h2>Últimos envíos externos</h2>
+  {% if ultimos %}
+    <table>
+      <thead>
+        <tr><th>Fecha</th><th>Canal</th><th>Evento</th><th>Estado</th></tr>
+      </thead>
+      <tbody>
+        {% for item in ultimos %}
+          <tr>
+            <td>{{ item.enviado_en|date:"d/m/Y H:i"|default:"-" }}</td>
+            <td>{{ item.get_canal_display }}</td>
+            <td>{{ item.get_evento_display }}</td>
+            <td>{{ item.get_estado_display }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div class="vacio-panel">Todavía no hay envíos externos registrados.</div>
+  {% endif %}
+</div>
+{% endblock %}

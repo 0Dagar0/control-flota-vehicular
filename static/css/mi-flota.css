@@ -598,3 +598,16 @@ td.numero { text-align: right; font-variant-numeric: tabular-nums; }
   color: var(--gris);
   border-top: 1px solid var(--borde);
 }
+
+/* ---------- Notificaciones (v1.0) ---------- */
+.menu .insignia { padding: 1px 6px; font-size: 11px; margin-left: 4px; }
+.notif-nueva { background: rgba(247, 209, 23, 0.12); }
+.punto-nuevo { color: var(--rojo); font-size: 10px; margin-right: 4px; }
+.formulario .campo-check input { width: 20px; height: 20px; min-height: 20px; }
+.formulario .campo-check label { font-size: 14px; }
+.formulario .acciones { grid-column: 1 / -1; }
+#activar-push { min-height: 48px; }
+@media (max-width: 768px) {
+  .cabecera > div:last-child { display: flex; flex-wrap: wrap; gap: 8px; }
+  .cabecera .boton { min-height: 48px; }
+}

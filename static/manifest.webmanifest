@@ -1,0 +1,11 @@
+{
+  "name": "Mi Flota — Control vehicular",
+  "short_name": "Mi Flota",
+  "description": "Avisos de documentos, novedades y mantenimientos de la flota.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fef7e5",
+  "theme_color": "#380710",
+  "lang": "es"
+}

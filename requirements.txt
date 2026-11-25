@@ -5,3 +5,7 @@ Pillow==13.0.0
 pytest==9.2.0
 pytest-django==4.14.0
 ruff==0.17.4
+# v1.0: Web Push (VAPID) y dependencias fijadas para reproducción del entorno.
+pywebpush==2.5.0
+cryptography==50.0.2
+requests==2.34.2

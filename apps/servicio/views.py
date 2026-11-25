@@ -27,6 +27,7 @@ from apps.flota.models import (
     RespuestaItem,
     Servicio,
 )
+from apps.notificaciones.servicios import notificar_servicio_con_novedad
 
 from .forms import ServicioCerrarForm, ServicioIniciarForm
 
@@ -259,6 +260,8 @@ class ServicioCerrarView(SoloConductorMixin, FormView):
                 f"Servicio cerrado: {servicio.km_recorridos} km recorridos, sin novedad.",
             )
         else:
+            # v1.0: el contrato §9 pide aviso en la app para el administrador.
+            notificar_servicio_con_novedad(servicio)
             messages.warning(
                 self.request,
                 "Servicio cerrado con novedad. El administrador la revisará.",

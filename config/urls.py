@@ -20,6 +20,7 @@ from apps.flota.views_novedades import (
     NovedadNuevaView,
 )
 from apps.maestros import views as maestros
+from apps.notificaciones.views import service_worker
 from apps.servicio.views import InspeccionRapidaView, MiServicioView
 from config.views import estado, inicio
 
@@ -64,6 +65,9 @@ urlpatterns = [
     ),
     path("mis-novedades/", MisNovedadesView.as_view(), name="mis_novedades"),
     path("maestros/", include("apps.maestros.urls")),
+    # v1.0: bandeja de notificaciones y service worker de Web Push.
+    path("notificaciones/", include("apps.notificaciones.urls")),
+    path("sw.js", service_worker, name="service_worker"),
     path("estado/", estado, name="estado"),
     path("", inicio, name="inicio"),
 ]

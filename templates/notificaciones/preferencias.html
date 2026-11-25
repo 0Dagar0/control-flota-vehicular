@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% load static %}
+{% block titulo %}Preferencias de notificaciones{% endblock %}
+
+{% block contenido %}
+<div class="cabecera">
+  <div>
+    <h1>Preferencias de notificaciones</h1>
+    <p>Elige qué canales usar para cada tipo de aviso.</p>
+  </div>
+  <a class="boton boton-secundario" href="{% url 'notificaciones:lista' %}">Volver a la bandeja</a>
+</div>
+
+<div class="tarjeta">
+  <div class="aviso">
+    Las notificaciones críticas no se pueden silenciar (R15): siempre llegan a la app
+    y se repiten por correo, Telegram y Web Push.
+  </div>
+  <div class="rejilla-fotos">
+    <article class="foto-slot">
+      <h3>Novedad crítica</h3>
+      <p><span class="insignia insignia-roja">App, correo, Telegram y Web Push</span></p>
+      <p class="meta"><input type="checkbox" checked disabled> No se puede silenciar (R15)</p>
+    </article>
+    <article class="foto-slot">
+      <h3>Solicitud de autorización</h3>
+      <p><span class="insignia insignia-roja">App, correo, Telegram y Web Push</span></p>
+      <p class="meta"><input type="checkbox" checked disabled> No se puede silenciar (R15)</p>
+    </article>
+  </div>
+</div>
+
+<div class="tarjeta">
+  <form method="post" class="formulario">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    {% for campo in form %}
+      <div class="campo {% if campo.field.widget.input_type == 'checkbox' %}campo-check{% endif %}">
+        {{ campo.label_tag }}
+        {{ campo }}
+        {% if campo.help_text %}<span class="ayuda">{{ campo.help_text }}</span>{% endif %}
+        {{ campo.errors }}
+      </div>
+    {% endfor %}
+    <div class="acciones">
+      <button type="submit" class="boton">Guardar preferencias</button>
+    </div>
+  </form>
+  <div class="aviso">Guardar no envía una prueba.</div>
+</div>
+
+<div class="tarjeta">
+  <h2>Datos de contacto</h2>
+  <p class="texto-suave">Correo: {{ correo|default:"sin correo" }}</p>
+  <p class="texto-suave">Chat de Telegram: {{ chat_id|default:"sin guardar" }}</p>
+  {% if user.es_admin %}
+    <p class="texto-suave">
+      Para cambiarlos, entra a
+      <a class="enlace" href="{% url 'maestros:usuario_lista' %}">Usuarios</a>
+      y edita tu registro.
+    </p>
+  {% endif %}
+  <button type="button" class="boton boton-secundario" id="activar-push"
+          data-vapid="{{ vapid_public_key }}">Activar avisos en este navegador</button>
+  <p id="estado-push" class="ayuda" aria-live="polite"></p>
+</div>
+{% endblock %}

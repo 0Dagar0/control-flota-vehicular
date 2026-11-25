@@ -4,10 +4,11 @@ Sistema de control de flota para el transporte de huevos: inspecciones
 preoperacionales, novedades, documentos, mantenimiento y hoja de vida por placa.
 
 Proyecto en construcción por versiones. Estado actual: **v1.1 (mantenimientos e
-incidentes)** publicada en `origin/master`, más la **galería de fotos del vehículo**
-y el **envío de correo (SMTP de Gmail)** listos para la v1.0, con **196 pruebas en
-verde**. Lo siguiente es la **v1.0 (notificaciones y despliegue)**: Telegram, Web
-Push y puesta en producción.
+incidentes)** publicada en `origin/master`, más la **galería de fotos**, el **correo
+SMTP**, el **bot de Telegram** y las **claves VAPID** listos para la v1.0, con
+**238 pruebas en verde**. El backend de la **v1.0 (notificaciones)** ya está
+implementado y guardado sin publicar; falta el despliegue con HTTPS para que Web
+Push funcione fuera del PC y las 6 pantallas del encargo 05 de diseño.
 
 ## Requisitos
 
@@ -55,9 +56,16 @@ Abre http://127.0.0.1:8000/ e inicia sesión con la cédula del usuario.
 | `python manage.py cargar_plantilla_inspeccion` | Crea o actualiza la plantilla «Rápida» (7 ítems) |
 | `python manage.py cargar_flota_inicial` | Carga los datos de flota (idempotente) |
 | `python manage.py comprobar_correo` | Envía un correo de prueba con el SMTP del `.env` |
+| `python manage.py comprobar_telegram` | Verifica el bot y envía un mensaje de prueba (sin mostrar el token) |
+| `python manage.py enviar_notificaciones` | Procesa la cola: envíos, 3 reintentos y escalamiento |
+| `python manage.py enviar_notificaciones --resumen` | Genera y envía el resumen de las 7:00 a. m. |
 | `python manage.py createsuperuser` | Crea un administrador del panel de Django |
 | `pytest` | Ejecuta las pruebas |
 | `ruff check .` | Revisa el estilo del código |
+
+Las tareas `MiFlota-*` del Programador de tareas de Windows ejecutan la cola cada minuto, el
+resumen a las 07:00 y las inspecciones al mediodía. Se registran con
+`powershell -ExecutionPolicy Bypass -File scripts\registrar_tareas_notificaciones.ps1`.
 
 ## Estructura
 
@@ -68,9 +76,10 @@ App\
 │   ├── usuarios\        Usuario personalizado con roles
 │   ├── flota\           Vehículos, documentos, inspecciones, novedades, mantenimientos
 │   ├── maestros\        Formularios y vistas de /maestros/ (sin modelos)
-│   └── servicio\        Servicio del conductor (iniciar y cerrar)
+│   ├── servicio\        Servicio del conductor (iniciar y cerrar)
+│   └── notificaciones\  v1.0: bandeja, canales, preferencias y cola de envío
 ├── templates\           Plantillas HTML
-├── static\              CSS, imágenes y JavaScript
+├── static\              CSS, service worker, manifiesto PWA y JavaScript
 ├── docs\                Documento maestro, contrato front/back y guía de entorno
 ├── datos\               Carga inicial (los datos reales no se versionan)
 ├── scripts\             Utilidades (creación de la base PostgreSQL)
@@ -85,7 +94,7 @@ Las pruebas viven en `apps/<app>/tests/`.
 - v0.1 Entorno · v0.2 Modelos de flota · v0.3 Acceso · v0.4 Maestros · v0.5 Servicio
 - v0.6 Inspección rápida · v0.7 Novedades · v0.8 Autorización · v0.9 Documentos
 - v0.10 Panel y hoja de vida 360° · v1.1 Mantenimientos e incidentes
-- **Siguiente:** v1.0 Notificaciones y despliegue
+- **v1.0 Notificaciones:** backend implementado; queda desplegar con HTTPS y entregar las maquetas del encargo 05
 
 El detalle completo está en `docs/DOCUMENTO_MAESTRO.md`.
 
