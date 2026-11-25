@@ -97,7 +97,8 @@ Las pruebas viven en `apps/<app>/tests/`.
 - v0.10 Panel y hoja de vida 360° · v1.1 Mantenimientos e incidentes
 - **v1.0 Notificaciones:** backend implementado; queda desplegar con HTTPS y entregar las maquetas del encargo 05
 
-El detalle completo está en `docs/DOCUMENTO_MAESTRO.md`.
+El detalle completo está en `docs/DOCUMENTO_MAESTRO.md`. El plan para dejar el programa
+funcionando 24/7 está en `docs/DESPLIEGUE.md`.
 
 ## Reglas del proyecto
 
