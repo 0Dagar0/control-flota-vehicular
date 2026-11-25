@@ -3,11 +3,16 @@
 Sistema de control de flota para el transporte de huevos: inspecciones
 preoperacionales, novedades, documentos, mantenimiento y hoja de vida por placa.
 
-Proyecto en construcción por versiones. Estado actual: **v0.1 (entorno)**.
+Proyecto en construcción por versiones. Estado actual: **v1.1 (mantenimientos e
+incidentes)** publicada en `origin/master`, más la **galería de fotos del vehículo**
+y el **envío de correo (SMTP de Gmail)** listos para la v1.0, con **196 pruebas en
+verde**. Lo siguiente es la **v1.0 (notificaciones y despliegue)**: Telegram, Web
+Push y puesta en producción.
 
 ## Requisitos
 
 - Python 3.14
+- PostgreSQL 18 (el proyecto no usa SQLite en desarrollo)
 - Git
 
 ## Puesta en marcha
@@ -27,14 +32,18 @@ Copy-Item .env.example .env
 # Luego edita .env y pon una SECRET_KEY propia:
 #   python -c "from django.core.management.utils import get_random_secret_key as g; print(g())"
 
-# 5. Crear la base de datos
-python manage.py migrate
+# 5. Crear la base y el rol en PostgreSQL (solo la primera vez)
+powershell -File scripts\crear_base_postgres.ps1
 
-# 6. Arrancar
+# 6. Aplicar migraciones y cargar la plantilla de inspección
+python manage.py migrate
+python manage.py cargar_plantilla_inspeccion
+
+# 7. Arrancar
 python manage.py runserver
 ```
 
-Abre http://127.0.0.1:8000/ y verás la página de verificación.
+Abre http://127.0.0.1:8000/ e inicia sesión con la cédula del usuario.
 
 ## Comandos útiles
 
@@ -43,7 +52,10 @@ Abre http://127.0.0.1:8000/ y verás la página de verificación.
 | `python manage.py runserver` | Arranca el servidor de desarrollo |
 | `python manage.py makemigrations` | Genera migraciones tras cambiar modelos |
 | `python manage.py migrate` | Aplica los cambios a la base de datos |
-| `python manage.py createsuperuser` | Crea un administrador del panel |
+| `python manage.py cargar_plantilla_inspeccion` | Crea o actualiza la plantilla «Rápida» (7 ítems) |
+| `python manage.py cargar_flota_inicial` | Carga los datos de flota (idempotente) |
+| `python manage.py comprobar_correo` | Envía un correo de prueba con el SMTP del `.env` |
+| `python manage.py createsuperuser` | Crea un administrador del panel de Django |
 | `pytest` | Ejecuta las pruebas |
 | `ruff check .` | Revisa el estilo del código |
 
@@ -51,15 +63,31 @@ Abre http://127.0.0.1:8000/ y verás la página de verificación.
 
 ```
 App\
-├── config\            Configuración del proyecto (settings, urls, vistas base)
+├── config\              Configuración del proyecto (settings, urls, vistas base)
 ├── apps\
-│   └── usuarios\      Usuario personalizado con roles
-├── templates\         Plantillas HTML
-├── static\            CSS, imágenes y JavaScript
-├── tests\             Pruebas automatizadas
-├── requirements.txt   Dependencias con versión fija
-└── .env               Secretos locales (no se versiona)
+│   ├── usuarios\        Usuario personalizado con roles
+│   ├── flota\           Vehículos, documentos, inspecciones, novedades, mantenimientos
+│   ├── maestros\        Formularios y vistas de /maestros/ (sin modelos)
+│   └── servicio\        Servicio del conductor (iniciar y cerrar)
+├── templates\           Plantillas HTML
+├── static\              CSS, imágenes y JavaScript
+├── docs\                Documento maestro, contrato front/back y guía de entorno
+├── datos\               Carga inicial (los datos reales no se versionan)
+├── scripts\             Utilidades (creación de la base PostgreSQL)
+├── requirements.txt     Dependencias con versión fija
+└── .env                 Secretos locales (no se versiona)
 ```
+
+Las pruebas viven en `apps/<app>/tests/`.
+
+## Versiones
+
+- v0.1 Entorno · v0.2 Modelos de flota · v0.3 Acceso · v0.4 Maestros · v0.5 Servicio
+- v0.6 Inspección rápida · v0.7 Novedades · v0.8 Autorización · v0.9 Documentos
+- v0.10 Panel y hoja de vida 360° · v1.1 Mantenimientos e incidentes
+- **Siguiente:** v1.0 Notificaciones y despliegue
+
+El detalle completo está en `docs/DOCUMENTO_MAESTRO.md`.
 
 ## Reglas del proyecto
 
@@ -67,3 +95,4 @@ App\
 - Los roles son `conductor`, `admin` y `superadmin`.
 - La lógica de negocio se valida en el servidor, nunca solo en el navegador.
 - Cada versión se entrega con pruebas que pasan.
+- `MEMORY.md` y los datos reales del cliente no se publican: están en `.gitignore`.

@@ -117,25 +117,25 @@ CRUD de vehículos, conductores, usuarios y plantillas. Alta de administradores 
 Inicio (km + ruta) y cierre (km + novedad), con todas sus reglas. Incluye la asignación de vehículo
 con historial (`Asignacion`), que hace el administrador o el superadministrador.
 
-### v0.6 — Inspección rápida
+### v0.6 — Inspección rápida *(completada)*
 Plantilla, ítems, formulario móvil, fotos comprimidas, PIN de confirmación, detección de inspecciones sospechosas.
 
-### v0.7 — Novedades
+### v0.7 — Novedades *(completada)*
 Creación desde inspección, ruta y cierre; severidad; ciclo de estados; bloqueo; bandeja con temporizador.
 
-### v0.8 — Autorización
+### v0.8 — Autorización *(completada)*
 Pantalla del superadmin, firma de responsabilidad, sello rojo, auditoría.
 
-### v0.9 — Documentos
+### v0.9 — Documentos *(completada)*
 Semáforo de 30/15/7/3/0 días, renovación, alertas.
 
-### v0.10 — Hoja de vida y panel
+### v0.10 — Hoja de vida y panel *(completada)*
 Vista 360° por placa e indicadores (cumplimiento, bloqueos, fallas repetidas).
 
 ### v1.0 — Notificaciones y despliegue
 Los 4 canales, reintentos, preferencias y puesta en producción.
 
-### v1.1 — Mantenimiento e incidentes
+### v1.1 — Mantenimiento e incidentes *(completada)*
 Inspección profunda semanal, mantenimiento **registrado a mano** (tipo, fecha, km del vehículo y
 km del próximo cambio, con aviso por distancia), incidentes, novedad → orden de trabajo.
 
@@ -317,7 +317,8 @@ permisos validados en el servidor, bloqueo por intentos fallidos (v1.1), HTTPS e
 - **La inspección rápida todavía no bloquea:** llega en la v0.6 como paso obligatorio.
 - **78 pruebas** pasan, `ruff` limpio, sin migraciones pendientes (`flota.0005`).
 - **Siguiente:** integrar los Días 1 y 2 del encargo 02 (galería de 6 fotos y visor de soportes) y
-  después la v0.6 (inspección rápida).
+  después la v0.6 (inspección rápida). *(Actualizado el 23/11/2026: la galería de 6 fotos ya está
+  implementada en `/vehiculos/<placa>/fotos/`; el visor de soportes sigue pendiente.)*
 
 ---
 
@@ -332,6 +333,7 @@ permisos validados en el servidor, bloqueo por intentos fallidos (v1.1), HTTPS e
 | Fotos de 2–4 MB | Consumo de datos | Compresión a ≤1 MB antes de subir |
 | Datos personales de conductores | Ley 1581/2012 | Consentimiento informado y acceso restringido |
 | Servidor de producción | Caída del servicio | VPS + respaldos diarios (v1.0) |
+| Sin soportes ni fotos reales cargados (14 documentos sin soporte, 0 fotos al 23/11/2026) | R19 y la galería quedan sin evidencia | El dueño los sube desde `/documentos/` y `/vehiculos/<placa>/fotos/` |
 
 ---
 

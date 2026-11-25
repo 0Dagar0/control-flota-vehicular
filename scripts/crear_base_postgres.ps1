@@ -16,7 +16,17 @@ $ErrorActionPreference = "Stop"
 
 $app = Split-Path -Parent $PSScriptRoot
 $archivoEnv = Join-Path $app ".env"
-$psql = "P:\Program Files\PostgreSQL\18\bin\psql.exe"
+$candidatos = @(
+    "P:\Program Files\PostgreSQL\18\bin\psql.exe",
+    "D:\Program Files\PostgreSQL\18\bin\psql.exe",
+    "C:\Program Files\PostgreSQL\18\bin\psql.exe"
+)
+$psql = $candidatos | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+if (-not $psql) {
+    $enPath = Get-Command psql -ErrorAction SilentlyContinue
+    if ($enPath) { $psql = $enPath.Source }
+}
+$psql = if ($psql) { $psql } else { $candidatos[0] }
 $nombreBase = "mi_flota"
 $usuarioApp = "mi_flota"
 
