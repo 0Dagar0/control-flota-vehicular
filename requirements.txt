@@ -9,3 +9,6 @@ ruff==0.17.4
 pywebpush==2.5.0
 cryptography==50.0.2
 requests==2.34.2
+# v1.0: servidor de produccion y archivos estaticos sin nginx.
+waitress==3.0.2
+whitenoise==6.12.0

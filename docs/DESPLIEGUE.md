@@ -1,7 +1,21 @@
 # Despliegue de la v1.0 (24/7)
 
-Estado: **plan preparado el 25/11/2026, sin ejecutar**. Requiere decisión del dueño sobre dónde
-vivirá el programa y autorización para instalar dos dependencias nuevas.
+Estado: **opción A elegida por el dueño el 25/11/2026**. Dependencias ya instaladas y
+verificadas; falta el dominio y el túnel con nombre.
+
+**Recomendación para hacerlo de la mejor manera:**
+1. Comprar un dominio propio barato (Cloudflare Registrar o Namecheap, unos USD 10/año) y usar
+   `miflota.<tu-dominio>`. Es estable, profesional y evita depender de una URL aleatoria.
+2. Crear un **túnel con nombre** de Cloudflare (no el túnel rápido): el túnel rápido cambia de
+   dirección cada vez que se reinicia y solo sirve para una primera prueba.
+3. Activar **Cloudflare Access** con correo o PIN para que, además del login de Django, haya
+   una segunda barrera antes de llegar al sitio.
+4. Configurar el PC para que **no entre en suspensión** y, si es posible, con UPS: el 24/7
+   depende de esa máquina.
+5. Programar copias diarias de PostgreSQL (o copiar el archivo de la base a la USB `F:`).
+
+El `chat_id` del superadministrador ya quedó guardado en la base real; la enseñanza de las dos
+vías queda pendiente (#41) a petición del dueño.
 
 ## 1. Prueba previa (ya completada)
 
@@ -12,10 +26,10 @@ y solo por los canales **app** y **correo**:
 - Bandeja `/notificaciones/` → HTTP 200; detalle `/notificaciones/1/` → HTTP 200.
 - El canal app queda visible en la bandeja; el correo sale por el SMTP real.
 
-Telegram y Web Push **no** se probaron de extremo a extremo: falta guardar el `chat_id` del
-usuario y activar una suscripción en un navegador. Por eso, al desplegar, esos dos canales
-seguirán marcando error hasta que se configuren. Las notificaciones críticas no se pueden
-silenciar (R15), así que seguirán intentando los 4 canales.
+Telegram y Web Push **no** se probaron de extremo a extremo. El `chat_id` del superadministrador
+ya quedó guardado en la base real (25/11), pero falta activar una suscripción en un navegador.
+Por eso Web Push seguirá marcando error hasta que se configure. Las notificaciones críticas no
+se pueden silenciar (R15), así que seguirán intentando los 4 canales.
 
 ## 2. Qué significa 24/7
 
@@ -63,18 +77,23 @@ El programa debe ejecutarse en una máquina que esté siempre encendida. En este
    - Enviar `manage.py comprobar_correo` y `manage.py comprobar_telegram --sin-envio`.
    - Desde el celular, abrir el sitio, ir a preferencias y activar Web Push.
 
-## 4. Dependencias que faltan (requieren autorización)
+## 4. Dependencias instaladas y verificadas
+
+El dueño autorizó la instalación el 25/11. Quedaron fijadas en `requirements.txt`:
 
 ```text
-waitress==3.x
-whitenoise==6.x
+waitress==3.0.2
+whitenoise==6.12.0
 ```
 
-Se fijarán en `requirements.txt` después de instalarlas y comprobar la versión exacta.
+WhiteNoise quedó en `MIDDLEWARE` y `collectstatic` ya se ejecutó (134 archivos). Prueba real
+con `waitress-serve --host=127.0.0.1 --port=8020 config.wsgi:application`: HTTP 200 en `/`,
+`/static/css/mi-flota.css`, `/static/manifest.webmanifest`, `/sw.js` y `/notificaciones/`.
 
-## 5. Decisiones pendientes del dueño
+## 5. Estado de las decisiones
 
-1. Elegir opción A, B o C.
-2. Autorizar la instalación de `waitress` y `whitenoise`.
-3. Indicar el dominio a usar (o aceptar un subdominio gratuito de túnel para la primera prueba).
-4. Decidir cuándo enseñar/guardar el `chat_id` (pendiente #41, pospuesto por ahora).
+1. ✅ Opción A elegida por el dueño.
+2. ✅ Instalación de `waitress` y `whitenoise` autorizada y ejecutada.
+3. ✅ `chat_id` guardado en la base real; la enseñanza sigue pospuesta (#41).
+4. ⏳ Falta: crear cuenta de Cloudflare, elegir/comprar dominio y crear el túnel con nombre.
+5. ⏳ Falta: decidir si se activa Cloudflare Access (recomendado) y configurar el PC sin suspensión.

@@ -1,6 +1,6 @@
 """Pruebas de las reglas de negocio: destinatarios, eventos y resumen."""
 
-from datetime import timedelta
+from datetime import datetime, time, timedelta
 
 from django.utils import timezone
 
@@ -158,8 +158,11 @@ def test_inspeccion_pendiente_al_mediodia(admin, conductor, vehiculo):
         plantilla=plantilla,
         km=84_300,
     )
+    # Hora fija antes del mediodía: la prueba no depende de la hora en que se ejecute.
     Inspeccion.objects.filter(pk=inspeccion.pk).update(
-        iniciado_en=timezone.now() - timedelta(hours=6)
+        iniciado_en=timezone.make_aware(
+            datetime.combine(timezone.localdate(), time(9, 0))
+        )
     )
 
     creadas = verificar_inspecciones_pendientes()
